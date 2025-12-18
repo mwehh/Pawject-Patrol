@@ -211,7 +211,9 @@ export default function RequestPage() {
     setErrors(newErrors);
     if (hasError) return;
     // Set confirm_access cookie before redirecting to confirm page
-    document.cookie = "confirm_access=true; path=/; max-age=300";
+    if (typeof window !== "undefined") {
+      document.cookie = "confirm_access=true; path=/; max-age=300";
+    }
     const queryParams = new URLSearchParams(formData).toString();
     router.push(`/admin/volunteer/request/confirm?${queryParams}`);
   };

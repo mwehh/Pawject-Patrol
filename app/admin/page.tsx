@@ -20,6 +20,8 @@ import Sidebar from "@/components/Sidebar";
 export default function HeaderAndBackground() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Fix hydration mismatch: only render timeAgo after mount
+  const [isMounted, setIsMounted] = useState(false);
 
   // State management for paw decorations, dog image, and dashboard stats
   const [paws, setPaws] = useState<
@@ -88,11 +90,10 @@ export default function HeaderAndBackground() {
 
   // Handle responsive layout changes for paw decorations and dog image
   useEffect(() => {
+    setIsMounted(true);
     const handleResize = () => {
       const width = window.innerWidth;
-
       if (width > 768) {
-        // Desktop/Tablet Layout — 12 paws positioned across the screen
         setPaws([
           { src: "/paws/paws1.png", top: "8%", left: "10%", rotate: 43 },
           { src: "/paws/paws2.png", top: "15%", left: "30%", rotate: -15 },
@@ -107,10 +108,8 @@ export default function HeaderAndBackground() {
           { src: "/paws/paws1.png", top: "82%", left: "50%", rotate: 15 },
           { src: "/paws/paws2.png", top: "88%", left: "25%", rotate: -30 },
         ]);
-        // Use larger dog image for desktop
         setDogSrc("/dog2.png");
       } else {
-        // Mobile Layout — 10 paws optimized for smaller screens
         setPaws([
           { src: "/paws/paws1.png", top: "8%", left: "10%", rotate: 40 },
           { src: "/paws/paws2.png", top: "15%", left: "65%", rotate: -30 },
@@ -123,15 +122,11 @@ export default function HeaderAndBackground() {
           { src: "/paws/paws1.png", top: "85%", left: "30%", rotate: 10 },
           { src: "/paws/paws2.png", top: "90%", left: "70%", rotate: -35 },
         ]);
-        // Use smaller dog image for mobile
         setDogSrc("/dog.png");
       }
     };
-
-    // Initialize layout and add resize listener
     handleResize();
     window.addEventListener("resize", handleResize);
-    // Cleanup listener on unmount
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
@@ -606,19 +601,22 @@ export default function HeaderAndBackground() {
                   ) : (
                     recentReports.slice(0, 3).map((report, idx) => {
                       const isResolved = report.report_status === 'Resolved' || report.report_status === 'Accepted';
-                      const timeAgo = (() => {
-                        if (!report.created_at) return 'Unknown';
-                        const now = new Date();
-                        const created = new Date(report.created_at);
-                        const diffMs = now.getTime() - created.getTime();
-                        const diffMins = Math.floor(diffMs / 60000);
-                        const diffHours = Math.floor(diffMs / 3600000);
-                        const diffDays = Math.floor(diffMs / 86400000);
-                        if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''}`;
-                        if (diffHours < 24) return `${diffHours} hr${diffHours !== 1 ? 's' : ''}`;
-                        return `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
-                      })();
-                      
+                      // Only calculate timeAgo on client after mount
+                      let timeAgo = '';
+                      if (isMounted) {
+                        if (!report.created_at) timeAgo = 'Unknown';
+                        else {
+                          const now = new Date();
+                          const created = new Date(report.created_at);
+                          const diffMs = now.getTime() - created.getTime();
+                          const diffMins = Math.floor(diffMs / 60000);
+                          const diffHours = Math.floor(diffMs / 3600000);
+                          const diffDays = Math.floor(diffMs / 86400000);
+                          if (diffMins < 60) timeAgo = `${diffMins} min${diffMins !== 1 ? 's' : ''}`;
+                          else if (diffHours < 24) timeAgo = `${diffHours} hr${diffHours !== 1 ? 's' : ''}`;
+                          else timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+                        }
+                      }
                       return (
                         <div
                           key={report.report_id || idx}
@@ -766,7 +764,7 @@ export default function HeaderAndBackground() {
                                 className="text-[10px] font-medium"
                                 style={{ color: "#385D70" }}
                               >
-                                {timeAgo}
+                                {isMounted ? timeAgo : ''}
                               </span>
                             </div>
                           </div>

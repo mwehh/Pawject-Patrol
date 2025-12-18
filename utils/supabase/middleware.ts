@@ -40,52 +40,6 @@ export async function updateSession(request: NextRequest) {
   // to pass through so the client page can finish processing the session.
   const search = request.nextUrl.search;
 
-<<<<<<< HEAD
-=======
-  // --- PATH CHECKS ---
-  // Restrict direct access to confirm pages unless coming from a form submission
-  if (
-    request.nextUrl.pathname.startsWith('/form/confirm') ||
-    request.nextUrl.pathname.startsWith('/admin/profiles/animal/confirm') ||
-    request.nextUrl.pathname.startsWith('/admin/volunteer/request/confirm')
-  ) {
-    // Check for confirm_access cookie
-    const confirmCookie = request.cookies.get('confirm_access');
-    if (confirmCookie?.value === 'true') {
-      // Clear the cookie after access (one-time use)
-      supabaseResponse.cookies.set('confirm_access', '', { maxAge: 0 });
-      // Allow access to confirm page
-    } else {
-      // Otherwise, redirect to the corresponding form/list page or home if not handled
-      const url = request.nextUrl.clone();
-      if (request.nextUrl.pathname.startsWith('/admin/profiles/animal/confirm')) {
-        url.pathname = '/admin/profiles/animal';
-      } else if (request.nextUrl.pathname.startsWith('/admin/volunteer/request/confirm')) {
-        url.pathname = '/admin/volunteer/request';
-      } else if (request.nextUrl.pathname.startsWith('/form/confirm')) {
-        url.pathname = '/form';
-      } else {
-        url.pathname = '/';
-      }
-      return NextResponse.redirect(url);
-    }
-  }
-  // /admin/* (except /admin/login): requires admin, redirects to /admin/login if not logged in
-  // /form/* (except /login): requires user, redirects to /login if not logged in
-  // /login, /auth, /admin/login, /catalog, /: public or special, allowed for all
-  // all other paths: redirects to / if not logged in
-  //
-  // This covers:
-  // - /admin/profiles, /admin/profiles/animal, /admin/profiles/animal/[id], /admin/profiles/animal/[id]/edit
-  // - /admin/report, /admin/report/[id]
-  // - /admin/volunteer, /admin/volunteer/[id]
-  // - /form/volunteer, /form/volunteer/[id], /form/report, /form/report/[id]
-  // - /user, /user/volunteer, /user/volunteer/[id], /user/profiles
-  //
-  // If you need more granular control (e.g., only allow admins for /admin/profiles/animal/[id]/edit),
-  // add more specific checks below.
-
->>>>>>> bb0a7976a7f911e64e381c25b023e0fed71a39eb
   if (!user) {
     if (search.includes("code=") || search.includes("access_token=")) {
       // Let the request continue so the client can call getSessionFromUrl.
@@ -114,12 +68,8 @@ export async function updateSession(request: NextRequest) {
       !request.nextUrl.pathname.startsWith("/auth") &&
       !request.nextUrl.pathname.startsWith("/admin/login") &&
       !request.nextUrl.pathname.startsWith("/catalog") &&
-<<<<<<< HEAD
-      request.nextUrl.pathname !== "/"
-=======
       request.nextUrl.pathname !== "/" &&
       request.nextUrl.pathname !== "/about-us"
->>>>>>> bb0a7976a7f911e64e381c25b023e0fed71a39eb
     ) {
       // no user, potentially respond by redirecting the user to the home page
       const url = request.nextUrl.clone();
@@ -150,10 +100,6 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
-<<<<<<< HEAD
-
-=======
->>>>>>> bb0a7976a7f911e64e381c25b023e0fed71a39eb
   // If user is logged in and on /admin/login without an error, redirect to /admin.
   // Allow staying on /admin/login when there's an error query (e.g., unauthorized, server_misconfig)
   // if (user && request.nextUrl.pathname === "/admin/login") {
