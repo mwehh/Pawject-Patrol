@@ -9,6 +9,7 @@ import { Menu, LogIn, X, Facebook, Instagram, Twitter, Mail, Calendar, Clock, Ma
 import {  } from "@/actions/volunteer/user";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import { Suspense } from "react";
 
 // Define Volunteer type
 type Volunteer = {
@@ -71,7 +72,7 @@ function formatTime(value?: string | null) {
 import { joinVolunteerCall, leaveVolunteerCall, getUserResponseStatus } from '@/actions/volunteer/user';
 import { listVolunteerCalls } from '@/actions/volunteer/admin';
 
-export default function UserVolunteerPage() {
+function UserVolunteerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<Volunteer[]>([]);
@@ -440,5 +441,13 @@ export default function UserVolunteerPage() {
       </div>
     </main>
     </>
+  );
+}
+
+export default function UserVolunteerLayout() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UserVolunteerPage />
+    </Suspense>
   );
 }

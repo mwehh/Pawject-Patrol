@@ -9,6 +9,7 @@ import Sidebar from "@/components/Sidebar";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 // Function to format datetime string for display
 function formatDateTime(value?: string) {
@@ -37,7 +38,7 @@ function decodeData(s?: string) {
 }
 
 // Main component for confirming volunteer request creation
-export default function ConfirmPage(props: any) {
+function ConfirmPage(props: any) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const [userName, setUserName] = useState<string>("");
@@ -288,5 +289,13 @@ export default function ConfirmPage(props: any) {
         </main>
       </div>
     </>
+  );
+}
+
+export default function ConfirmPageLayout() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConfirmPage />
+    </Suspense>
   );
 }

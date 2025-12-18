@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import { Suspense } from "react";
 
 // Field Components
 function Field({ label, placeholder, type = "text", value, onChange, required }: any) {
@@ -95,7 +96,7 @@ function TextArea({ label, placeholder, value, onChange, required }: any) {
 }
 
 // Page component for creating a volunteer request
-export default function RequestPage() {
+function RequestPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -422,5 +423,13 @@ export default function RequestPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function RequestPageLayout() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RequestPage />
+    </Suspense>
   );
 }

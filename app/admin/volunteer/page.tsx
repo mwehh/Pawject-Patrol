@@ -12,6 +12,7 @@ import { listVolunteerCalls, deleteAction } from "@/actions/volunteer/admin";
 import { getSignupCount } from "@/actions/volunteer/admin";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import { Suspense } from "react";
 
 // Define Volunteer type
 type Volunteer = {
@@ -71,7 +72,7 @@ function formatTime(value?: string | null) {
 }
 
 // Main component for Admin Volunteer Page
-export default function AdminVolunteerPage() {
+function AdminVolunteerPage() {
     // Modal state for delete confirmation and feedback
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
@@ -489,5 +490,13 @@ export default function AdminVolunteerPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function AdminVolunteerPageLayout() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminVolunteerPage />
+    </Suspense>
   );
 }

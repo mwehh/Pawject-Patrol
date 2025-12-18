@@ -9,6 +9,7 @@ import Sidebar from "@/components/Sidebar";
 import { Menu, LogIn, X, MapPin } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import { createAnimalProfile } from "@/actions/profiles/admin";
+import { Suspense } from "react";
 
 // Helper: convert animal_theme name to hex color
 function getThemeColor(theme: string | null | undefined): string {
@@ -23,7 +24,7 @@ function getThemeColor(theme: string | null | undefined): string {
   return themeMap[theme.toLowerCase()] || "#689668";
 }
 
-export default function AnimalProfileConfirmPage() {
+function AnimalProfileConfirmPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -592,5 +593,13 @@ export default function AnimalProfileConfirmPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function AnimalProfileLayout() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AnimalProfileConfirmPage />
+    </Suspense>
   );
 }
