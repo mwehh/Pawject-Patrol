@@ -1,5 +1,8 @@
 // Server-side code for managing volunteer calls in the admin interface
 "use server";
+// TEMP DEBUG: Log the service role key at runtime
+console.log('[DEBUG] SUPABASE_SERVICE_ROLE_KEY at runtime:', process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 
 // Server action to uncomplete a volunteer call by updating status to Active
 export async function uncompleteAction(formData: FormData): Promise<void> {
