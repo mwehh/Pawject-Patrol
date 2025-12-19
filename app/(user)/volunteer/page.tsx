@@ -6,10 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, LogIn, X, Facebook, Instagram, Twitter, Mail, Calendar, Clock, MapPin, User, Search } from "lucide-react";
-import {  } from "@/actions/volunteer/user";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import { Suspense } from "react";
+import { joinVolunteerCall, leaveVolunteerCall, getUserResponseStatus } from '@/actions/volunteer/user';
+import { listVolunteerCalls } from '@/actions/volunteer/admin';
 
 // Define Volunteer type
 type Volunteer = {
@@ -67,10 +68,6 @@ function formatTime(value?: string | null) {
     return String(value);
   }
 }
-
-
-import { joinVolunteerCall, leaveVolunteerCall, getUserResponseStatus } from '@/actions/volunteer/user';
-import { listVolunteerCalls } from '@/actions/volunteer/admin';
 
 console.log("UserVolunteerPage mounted");
 function UserVolunteerPage() {

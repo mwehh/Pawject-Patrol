@@ -244,77 +244,27 @@ export async function syncAllVolunteerCallStatuses() {
 // Function to list volunteer calls with optional search and limit
 export async function listVolunteerCalls(opts?: { search?: string; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
 
-  // Log incoming options for debugging
   try {
-    // Sync all statuses first
-    await syncAllVolunteerCallStatuses();
-    
     const supabase = await getSupabase();
-
-    // Check for search parameter and build query accordingly
     let q: any = supabase.from("volunteer_call").select("*");
     if (opts?.search) {
-      // Make consistent search string
       const s = opts.search;
-
-      // Search in title, details, or location
       q = q.or(`call_title.ilike.%${s}%,call_details.ilike.%${s}%,call_location.ilike.%${s}%`);
     }
-    
-    // Apply sorting
     const sortColumn = opts?.sortBy || "created_at";
     const sortAsc = opts?.sortOrder === 'asc';
     q = q.order(sortColumn, { ascending: sortAsc });
-    
-    // Apply limit if specified
     if (opts?.limit) q = q.limit(opts.limit);
-
-    // Execute the query
     const { data, error } = await q;
     if (error) {
       console.error("listVolunteerCalls error:", error);
       return [];
     }
-
-    // Use service role client for joined count to ensure RLS is bypassed
-    const serviceClient = getServiceClient();
-    const callsWithJoined = await Promise.all(
-      (data || []).map(async (call: VolunteerCall) => {
-        const joined_count = call.call_id ? await getSignupCount(serviceClient, call.call_id) : 0;
-        return { ...call, joined_count };
-      })
-    );
-
-    let result = callsWithJoined;
-    if (opts?.sortBy === 'created_at') {
-      return result;
-    }
-    if (!opts?.sortBy) {
-      const statusPriority: { [key: string]: number } = {
-        'active': 1,
-        'filled': 2,
-        'completed': 3,
-        'cancelled': 4,
-      };
-      result = result.sort((a, b) => {
-        const statusA = (a.call_status || '').toLowerCase();
-        const statusB = (b.call_status || '').toLowerCase();
-        const priorityA = statusPriority[statusA] || 99;
-        const priorityB = statusPriority[statusB] || 99;
-        if (priorityA !== priorityB) {
-          return priorityA - priorityB;
-        }
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return dateB - dateA;
-      });
-    }
-    return result;
+    // Optionally, you can still add joined_count if needed, but without service role:
+    // If you want to remove all extra logic, just return data;
+    return data || [];
   } catch (e) {
-    // Log unexpected errors
     console.error(e);
-
-    // Return empty list on error
     return [];
   }
 }
