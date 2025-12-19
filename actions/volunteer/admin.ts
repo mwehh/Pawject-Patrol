@@ -72,12 +72,14 @@ function getServiceClient() {
 export async function getSignupCount(callId: string): Promise<number> {
   try {
     const serviceClient = getServiceClient();
-    const { count } = await serviceClient
+    const { count, data, error } = await serviceClient
       .from('volunteer_response')
       .select('*', { count: 'exact', head: true })
       .eq('call_id', callId);
+    console.log('[getSignupCount] callId:', callId, 'count:', count, 'error:', error, 'data:', data);
     return count || 0;
-  } catch {
+  } catch (e) {
+    console.error('[getSignupCount] Exception:', e);
     return 0;
   }
 }
@@ -97,6 +99,8 @@ export async function getVolunteerResponses(callId: string) {
       .eq('call_id', callId)
       .order('created_at', { ascending: false });
 
+    console.log('[getVolunteerResponses] callId:', callId, 'responses:', responses, 'error:', responsesError);
+
     if (responsesError) {
       console.error("getVolunteerResponses error:", responsesError);
       return [];
@@ -107,6 +111,8 @@ export async function getVolunteerResponses(callId: string) {
     // Get user emails from auth.users using service client
     const userIds = responses.map(r => r.user_id);
     const { data: users, error: usersError } = await serviceClient.auth.admin.listUsers();
+
+    console.log('[getVolunteerResponses] users:', users, 'usersError:', usersError);
 
     if (usersError) {
       console.error("getVolunteerResponses users error:", usersError);
