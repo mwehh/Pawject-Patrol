@@ -100,9 +100,11 @@ export default function AdminVolunteerDetailPage(props: any) {
       const resolvedParams: any = await props.params;
       const id = resolvedParams?.id;
       if (!id) return;
+      // Always use getVolunteerResponses (service client) for admin
       const v = await getVolunteerCall(id);
       setVolunteer(v);
-      setResponses(await getVolunteerResponses(id));
+      const responses = await getVolunteerResponses(id);
+      setResponses(responses);
       setLoading(false);
     })();
   }, [props.params]);

@@ -149,10 +149,11 @@ function AdminVolunteerPage() {
         });
       }
 
-      // For each call, fetch joined_count using backend function (service client)
+      // For each call, fetch joined_count using backend function (service client, bypasses RLS)
       const withCounts = await Promise.all(
         (data as Volunteer[]).map(async (call) => {
           if (!call.call_id) return { ...call, joined_count: 0 };
+          // getSignupCount uses service client, so admin sees all responses
           const count = await getSignupCount(call.call_id);
           return { ...call, joined_count: count || 0 };
         })
