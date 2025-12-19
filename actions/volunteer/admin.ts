@@ -1,8 +1,5 @@
 // Server-side code for managing volunteer calls in the admin interface
 "use server";
-// TEMP DEBUG: Log the service role key at runtime
-console.log('[DEBUG] SUPABASE_SERVICE_ROLE_KEY at runtime:', process.env.SUPABASE_SERVICE_ROLE_KEY);
-
 
 // Server action to uncomplete a volunteer call by updating status to Active
 export async function uncompleteAction(formData: FormData): Promise<void> {
@@ -12,12 +9,12 @@ export async function uncompleteAction(formData: FormData): Promise<void> {
       console.error("uncompleteAction missing id");
       return;
     }
-    // Use service client to bypass RLS for status update
-    const serviceClient = getServiceClient();
-    const { error } = await serviceClient
-      .from("volunteer_call")
-      .update({ call_status: "Active" })
-      .eq("call_id", id);
+        // Use regular Supabase client
+        const supabase = await getSupabase();
+        const { error } = await supabase
+          .from("volunteer_call")
+          .update({ call_status: "Active" })
+          .eq("call_id", id);
     if (error) {
       console.error("uncompleteAction error:", error);
     } else {
@@ -60,26 +57,19 @@ async function getSupabase() {
   return await createClient();
 }
 
-// Helper function to get service role client
-function getServiceClient() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured');
-  }
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
-// Helper function to get signup count for a volunteer call (always uses service client)
+// Helper function to get signup count for a volunteer call (uses regular client)
 export async function getSignupCount(callId: string): Promise<number> {
   try {
-    const serviceClient = getServiceClient();
-    const { count, data, error } = await serviceClient
+    const supabase = await getSupabase();
+    const { count, error } = await supabase
       .from('volunteer_response')
       .select('*', { count: 'exact', head: true })
       .eq('call_id', callId);
-    console.log('[getSignupCount] callId:', callId, 'count:', count, 'error:', error, 'data:', data);
+    if (error) {
+      console.error('[getSignupCount] error:', error);
+      return 0;
+    }
     return count || 0;
   } catch (e) {
     console.error('[getSignupCount] Exception:', e);
@@ -87,122 +77,74 @@ export async function getSignupCount(callId: string): Promise<number> {
   }
 }
 
-// Function to get volunteer responses with user details for a specific call
+// Function to get volunteer responses for a specific call (uses regular client, no user details)
 export async function getVolunteerResponses(callId: string) {
   if (!callId) return [];
-
   try {
-    // Use service client to access auth.users
-    const serviceClient = getServiceClient();
-
-    // First get volunteer responses
-    const { data: responses, error: responsesError } = await serviceClient
+    const supabase = await getSupabase();
+    const { data: responses, error } = await supabase
       .from('volunteer_response')
       .select('response_id, call_id, user_id, response_status, created_at')
       .eq('call_id', callId)
       .order('created_at', { ascending: false });
-
-    console.log('[getVolunteerResponses] callId:', callId, 'responses:', responses, 'error:', responsesError);
-
-    if (responsesError) {
-      console.error("getVolunteerResponses error:", responsesError);
+    if (error) {
+      console.error('getVolunteerResponses error:', error);
       return [];
     }
-
-    if (!responses || responses.length === 0) return [];
-
-    // Get user emails from auth.users using service client
-    const userIds = responses.map(r => r.user_id);
-    const { data: users, error: usersError } = await serviceClient.auth.admin.listUsers();
-
-    console.log('[getVolunteerResponses] users:', users, 'usersError:', usersError);
-
-    if (usersError) {
-      console.error("getVolunteerResponses users error:", usersError);
-      // Return responses without user data
-      return responses.map(r => ({ ...r, user: { id: r.user_id, email: null, name: null } }));
-    }
-
-    // Map responses with user emails and names
-    const usersMap = new Map(users.users.map(u => [u.id, { 
-      email: u.email,
-      name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split('@')[0] || null
-    }]));
-    
-    return responses.map(r => {
-      const userData = usersMap.get(r.user_id);
-      return {
-        ...r,
-        user: {
-          id: r.user_id,
-          email: userData?.email || null,
-          name: userData?.name || null
-        }
-      };
-    });
+    return responses || [];
   } catch (e) {
-    console.error("getVolunteerResponses exception:", e);
+    console.error('getVolunteerResponses exception:', e);
     return [];
   }
 }
 
 
-// Function to automatically update volunteer call status based on capacity and time
+// Function to automatically update volunteer call status based on capacity and time (uses regular client)
 export async function syncVolunteerCallStatus(callId: string) {
   try {
-    // Use service role client for reading to bypass RLS
-    const serviceClient = getServiceClient();
-    
+    const supabase = await getSupabase();
     // Get the volunteer call
-    const { data: call, error } = await serviceClient
+    const { data: call, error } = await supabase
       .from('volunteer_call')
       .select('*')
       .eq('call_id', callId)
       .single();
-    
     if (error || !call) return;
-    
     const currentStatus = (call.call_status || '').toLowerCase();
-    
     // Don't override Cancelled or Completed status (admin decision)
     if (currentStatus === 'cancelled' || currentStatus === 'completed') return;
-
     const now = new Date();
     const startTime = call.call_starttime ? new Date(call.call_starttime) : null;
     const endTime = call.call_endtime ? new Date(call.call_endtime) : null;
-
     // Completed status overrides all except Cancelled
     if (endTime && now > endTime) {
       if (currentStatus !== 'completed') {
-        await serviceClient
+        await supabase
           .from('volunteer_call')
           .update({ call_status: 'Completed' })
           .eq('call_id', callId);
       }
       return;
     }
-
     // Check if the event is currently ongoing (started)
     const isOngoing = startTime && now >= startTime;
     // For ongoing events, set status to Ongoing
     if (isOngoing) {
       if (currentStatus !== 'ongoing') {
-        await serviceClient
+        await supabase
           .from('volunteer_call')
           .update({ call_status: 'Ongoing' })
           .eq('call_id', callId);
       }
       return;
     }
-    
     // For future events, check capacity
     if (call.capacity) {
       const signupCount = await getSignupCount(callId);
-      
       if (signupCount >= call.capacity) {
         // Full capacity -> mark as Filled
         if (currentStatus !== 'filled') {
-          await serviceClient
+          await supabase
             .from('volunteer_call')
             .update({ call_status: 'Filled' })
             .eq('call_id', callId);
@@ -210,7 +152,7 @@ export async function syncVolunteerCallStatus(callId: string) {
       } else {
         // Has available spots -> mark as Active
         if (currentStatus !== 'active') {
-          await serviceClient
+          await supabase
             .from('volunteer_call')
             .update({ call_status: 'Active' })
             .eq('call_id', callId);
@@ -219,7 +161,7 @@ export async function syncVolunteerCallStatus(callId: string) {
     } else {
       // No capacity limit -> keep as Active if not already
       if (currentStatus !== 'active') {
-        await serviceClient
+        await supabase
           .from('volunteer_call')
           .update({ call_status: 'Active' })
           .eq('call_id', callId);
@@ -476,10 +418,9 @@ export async function completeAction(formData: FormData): Promise<void> {
       return;
     }
 
-    // Use service client to bypass RLS for status update
-    const serviceClient = getServiceClient();
-
-    const { error } = await serviceClient
+    // Use regular Supabase client
+    const supabase = await getSupabase();
+    const { error } = await supabase
       .from("volunteer_call")
       .update({ call_status: "Completed" })
       .eq("call_id", id);
@@ -612,60 +553,17 @@ export async function deleteAction(formData: FormData): Promise<void> {
       return;
     }
     
-    // Perform the deletion
-    let error: any = null;
-
-    // Use service role if available for elevated privileges
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        // Create Supabase client with service role
-        const svc = createSupabaseClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        );
-
-        // Fetch the volunteer call before deletion for any necessary checks or logging
-        const before = await svc.from("volunteer_call").select("*").eq("call_id", id).maybeSingle();
-       
-        // Delete the volunteer call from the database
-        const res = await svc.from("volunteer_call").delete().eq("call_id", id).select();
-        
-        // Handle any errors
-        error = res.error;
-
-        // Log error if occurred
-        if (error) console.error("deleteAction (service) error:", error);
-      } catch (e) {
-        // If Next's redirect throws, rethrow so the runtime can handle navigation
-        if (e && typeof e === 'object' && (String((e as any).digest || '').startsWith('NEXT_REDIRECT') || String((e as any).message || '').includes('NEXT_REDIRECT'))) {
-          throw e;
-        }
-        // Log unexpected errors
-        console.error("deleteAction service client error:", e);
-
-        // End function
-        return;
-      }
-    } else {
-      // Create Supabase client
-      const supabase = await getSupabase();
-
-      // Fetch the volunteer call before deletion for any necessary checks or logging
-      const before = await supabase.from("volunteer_call").select("*").eq("call_id", id).maybeSingle();
-      
-      // Delete the volunteer call from the database
-      const res = await supabase.from("volunteer_call").delete().eq("call_id", id).select();
-      
-      // Handle any errors
-      error = res.error;
-
-      // Log error if occurred
-      if (error) console.error("deleteAction error:", error);
-    }
-
-      // Revalidate the admin volunteer list so the UI updates immediately
-      try { revalidatePath('/admin/volunteer'); } catch (_) {}
-      // Do not redirect; let client handle UI update
+    // Use regular Supabase client
+    const supabase = await getSupabase();
+    // Fetch the volunteer call before deletion for any necessary checks or logging
+    const before = await supabase.from("volunteer_call").select("*").eq("call_id", id).maybeSingle();
+    // Delete the volunteer call from the database
+    const res = await supabase.from("volunteer_call").delete().eq("call_id", id).select();
+    // Handle any errors
+    if (res.error) console.error("deleteAction error:", res.error);
+    // Revalidate the admin volunteer list so the UI updates immediately
+    try { revalidatePath('/admin/volunteer'); } catch (_) {}
+    // Do not redirect; let client handle UI update
   } catch (e: any) {
     // If Next's redirect throws, rethrow so the runtime can handle navigation
     if (e && typeof e === 'object' && (String((e as any).digest || '').startsWith('NEXT_REDIRECT') || String((e as any).message || '').includes('NEXT_REDIRECT'))) {
@@ -684,42 +582,15 @@ export async function deleteVolunteerCall(id?: string) {
 
   // Perform the deletion
   try {
-    // Manage error state
-    let error: any = null;
 
-    // Use service role if available for elevated privileges
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      // Create Supabase client with service role
-      const svc = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      );
-
-      // Delete the volunteer call from the database
-      const { data, error: svcErr } = await svc.from("volunteer_call").delete().eq("call_id", id).select();
-      
-      // Handle any errors
-      error = svcErr;
-
-      // Check for errors
-      if (error) return { success: false, error: String((error as any).message || error) };
-    } else {
-      // Create Supabase client
-      const supabase = await getSupabase();
-
-      // Delete the volunteer call from the database
-      const { data, error: authErr } = await supabase.from("volunteer_call").delete().eq("call_id", id).select();
-      
-      // Handle any errors
-      error = authErr;
-
-      // Check for errors
-      if (error) return { success: false, error: String((error as any).message || error) };
-    }
-
+    // Use regular Supabase client
+    const supabase = await getSupabase();
+    // Delete the volunteer call from the database
+    const { data, error } = await supabase.from("volunteer_call").delete().eq("call_id", id).select();
+    // Handle any errors
+    if (error) return { success: false, error: String((error as any).message || error) };
     // Revalidate the admin volunteer list so the UI updates immediately
     try { revalidatePath('/admin/volunteer'); } catch (_) {}
-
     // Return success
     return { success: true };
   } catch (e: any) {
