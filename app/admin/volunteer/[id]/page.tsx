@@ -331,7 +331,7 @@ export default function AdminVolunteerDetailPage(props: any) {
                       {responses.length > 0 ? (
                         <div className="space-y-2 w-full">
                           {responses.map((response: any) => {
-                            const userName = response.user?.name || response.user?.email || 'Unknown User';
+                            const userName = response.name || response.email || 'Unknown User';
                             const firstLetter = userName[0]?.toUpperCase() || 'U';
                             return (
                               <div 
@@ -352,9 +352,9 @@ export default function AdminVolunteerDetailPage(props: any) {
                                     <div className="font-medium" style={{ color: '#3C3333', fontFamily: 'Genty Sans, sans-serif' }}>
                                       {userName}
                                     </div>
-                                    {response.user?.email && response.user.email !== userName && (
+                                    {response.email && response.email !== userName && (
                                       <div className="text-xs mt-0.5" style={{ color: '#6B7280', fontFamily: 'Genty Sans, sans-serif' }}>
-                                        {response.user.email}
+                                        {response.email}
                                       </div>
                                     )}
                                   </div>

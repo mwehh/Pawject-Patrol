@@ -84,7 +84,7 @@ export async function getVolunteerResponses(callId: string) {
     const supabase = await getSupabase();
     const { data: responses, error } = await supabase
       .from('volunteer_response')
-      .select('response_id, call_id, user_id, response_status, created_at')
+      .select('response_id, call_id, user_id, name, email, response_status, created_at')
       .eq('call_id', callId)
       .order('created_at', { ascending: false });
     if (error) {
