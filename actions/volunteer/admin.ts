@@ -68,10 +68,11 @@ function getServiceClient() {
   );
 }
 
-// Helper function to get signup count for a volunteer call
-export async function getSignupCount(supabase: any, callId: string): Promise<number> {
+// Helper function to get signup count for a volunteer call (always uses service client)
+export async function getSignupCount(callId: string): Promise<number> {
   try {
-    const { count } = await supabase
+    const serviceClient = getServiceClient();
+    const { count } = await serviceClient
       .from('volunteer_response')
       .select('*', { count: 'exact', head: true })
       .eq('call_id', callId);
@@ -187,7 +188,7 @@ export async function syncVolunteerCallStatus(callId: string) {
     
     // For future events, check capacity
     if (call.capacity) {
-      const signupCount = await getSignupCount(serviceClient, callId);
+      const signupCount = await getSignupCount(callId);
       
       if (signupCount >= call.capacity) {
         // Full capacity -> mark as Filled

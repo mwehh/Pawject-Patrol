@@ -149,11 +149,11 @@ function AdminVolunteerPage() {
         });
       }
 
-      // For each call, fetch joined_count using backend function
+      // For each call, fetch joined_count using backend function (service client)
       const withCounts = await Promise.all(
         (data as Volunteer[]).map(async (call) => {
           if (!call.call_id) return { ...call, joined_count: 0 };
-          const count = await getSignupCount(supabase, call.call_id);
+          const count = await getSignupCount(call.call_id);
           return { ...call, joined_count: count || 0 };
         })
       );
