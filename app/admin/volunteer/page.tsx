@@ -8,8 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, LogIn, X, Facebook, Instagram, Twitter, Mail, Calendar, Clock, MapPin, User, Search } from "lucide-react";
-import { listVolunteerCalls, deleteAction } from "@/actions/volunteer/admin";
-import { getSignupCount } from "@/actions/volunteer/admin";
+import { listVolunteerCalls, deleteAction, getSignupCount } from "@/actions/volunteer/admin";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import { Suspense } from "react";
@@ -81,7 +80,7 @@ function AdminVolunteerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<Volunteer[]>([]);
-  const [joinedCounts, setJoinedCounts] = useState<{ [key: string]: number }>({});
+  // joinedCounts state removed; we will attach joined_count directly to items
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || '');
@@ -93,7 +92,7 @@ function AdminVolunteerPage() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  // Fetch volunteer calls when search or sortBy changes
+  // Fetch volunteer calls and joined_count when search or sortBy changes
   useEffect(() => {
     let mounted = true;
 
@@ -150,7 +149,15 @@ function AdminVolunteerPage() {
         });
       }
 
-      setItems(data as Volunteer[]);
+      // For each call, fetch joined_count using backend function
+      const withCounts = await Promise.all(
+        (data as Volunteer[]).map(async (call) => {
+          if (!call.call_id) return { ...call, joined_count: 0 };
+          const count = await getSignupCount(supabase, call.call_id);
+          return { ...call, joined_count: count || 0 };
+        })
+      );
+      setItems(withCounts);
       setLoading(false);
     };
 
