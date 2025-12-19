@@ -121,13 +121,14 @@ function UserVolunteerPage() {
       const defaultAsc = column === 'call_title' || column === 'call_starttime';
       const sortOrder = defaultAsc ? 'asc' : 'desc';
 
-      const data = await listVolunteerCalls({
-        search: search || undefined,
-        sortBy: column,
-        sortOrder: sortOrder,
-        limit: 200
-      });
-      setItems(data as Volunteer[]);
+        const data = await listVolunteerCalls({
+          search: search || undefined,
+          sortBy: column,
+          sortOrder: sortOrder,
+          limit: 200
+        });
+        console.log("Volunteer data fetched (client-side):", data);
+        setItems(data as Volunteer[]);
 
       // Fetch user response status for each call
       const statuses: { [key: string]: string | null } = {};
