@@ -72,6 +72,7 @@ function formatTime(value?: string | null) {
 import { joinVolunteerCall, leaveVolunteerCall, getUserResponseStatus } from '@/actions/volunteer/user';
 import { listVolunteerCalls } from '@/actions/volunteer/admin';
 
+console.log("UserVolunteerPage mounted");
 function UserVolunteerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,6 +94,7 @@ function UserVolunteerPage() {
   };
 
   useEffect(() => {
+    console.log("useEffect running, checking auth...");
     let mounted = true;
 
     const fetchData = async () => {
