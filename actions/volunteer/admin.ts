@@ -36,7 +36,7 @@ export async function uncompleteAction(formData: FormData): Promise<void> {
 // Import necessary modules
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "../../utils/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 // Define the VolunteerCall type
