@@ -8,8 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, LogIn, X, Facebook, Instagram, Twitter, Mail, Calendar, Clock, MapPin, User, Search } from "lucide-react";
-import { listVolunteerCalls, deleteAction } from "@/actions/volunteer/admin";
-import { getSignupCount } from "@/actions/volunteer/admin";
+import { listVolunteerCalls, deleteAction, getSignupCount } from "@/actions/volunteer/admin";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import { Suspense } from "react";
@@ -81,7 +80,7 @@ function AdminVolunteerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<Volunteer[]>([]);
-  const [joinedCounts, setJoinedCounts] = useState<{ [key: string]: number }>({});
+  // joinedCounts state removed; we will attach joined_count directly to items
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || '');
@@ -93,7 +92,7 @@ function AdminVolunteerPage() {
   const [userEmail, setUserEmail] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  // Fetch volunteer calls when search or sortBy changes
+  // Fetch volunteer calls and joined_count when search or sortBy changes
   useEffect(() => {
     let mounted = true;
 
@@ -150,7 +149,16 @@ function AdminVolunteerPage() {
         });
       }
 
-      setItems(data as Volunteer[]);
+      // For each call, fetch joined_count using backend function (service client, bypasses RLS)
+      const withCounts = await Promise.all(
+        (data as Volunteer[]).map(async (call) => {
+          if (!call.call_id) return { ...call, joined_count: 0 };
+          // getSignupCount uses service client, so admin sees all responses
+          const count = await getSignupCount(call.call_id);
+          return { ...call, joined_count: count || 0 };
+        })
+      );
+      setItems(withCounts);
       setLoading(false);
     };
 
@@ -196,13 +204,44 @@ function AdminVolunteerPage() {
       setPendingDeleteId(null);
       setPendingDeleteTitle(null);
       setLoading(true);
-      const data = await listVolunteerCalls({
+      const column = sortBy || 'created_at';
+      const defaultAsc = column === 'call_title' || column === 'call_starttime';
+      const sortOrder = defaultAsc ? 'asc' : 'desc';
+      let data = await listVolunteerCalls({
         search: search || undefined,
-        sortBy: sortBy || 'created_at',
-        sortOrder: sortBy === 'call_title' || sortBy === 'call_starttime' ? 'asc' : 'desc',
+        sortBy: column,
+        sortOrder: sortOrder,
         limit: 200
       });
-      setItems(data as Volunteer[]);
+      // Custom sort for default (no sortBy): status hierarchy then start time
+      if (!sortBy) {
+        const statusRank = (status?: string | null) => {
+          const s = (status || '').toLowerCase();
+          if (s.includes('active') || s.includes('filled')) return 1;
+          if (s.includes('ongoing')) return 2;
+          if (s.includes('cancel')) return 3;
+          if (s.includes('completed')) return 4;
+          return 5;
+        };
+        data = (data as Volunteer[]).slice().sort((a, b) => {
+          const rankA = statusRank(a.call_status);
+          const rankB = statusRank(b.call_status);
+          if (rankA !== rankB) return rankA - rankB;
+          // If same status, sort by start time (earliest first)
+          const tA = a.call_starttime ? new Date(a.call_starttime).getTime() : 0;
+          const tB = b.call_starttime ? new Date(b.call_starttime).getTime() : 0;
+          return tA - tB;
+        });
+      }
+      // For each call, fetch joined_count using backend function
+      const withCounts = await Promise.all(
+        (data as Volunteer[]).map(async (call) => {
+          if (!call.call_id) return { ...call, joined_count: 0 };
+          const count = await getSignupCount(call.call_id);
+          return { ...call, joined_count: count || 0 };
+        })
+      );
+      setItems(withCounts);
       setLoading(false);
     } catch (err: any) {
       setModalError("Failed to delete. Please try again.");
