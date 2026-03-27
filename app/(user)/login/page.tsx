@@ -66,53 +66,64 @@ function LoginContent() {
 
   // Enforce allowed domain on mount and on auth state change
   useEffect(() => {
-    // Show error from query param if redirected from dashboard
     const urlError = searchParams.get("error");
     if (urlError) {
       setError(decodeURIComponent(urlError));
     }
-    setChecking(true);
 
     const codeParam = searchParams.get("code");
-    let cancelled = false;
-    let unsubscribe = undefined;
 
     if (codeParam) {
-      // Only poll for user after OAuth redirect, do not use onAuthStateChange
-      const pollForUser = async () => {
-        let user = null;
-        for (let i = 0; i < 20; i++) { // up to 4 seconds
-          if (cancelled) return;
-          const { data } = await supabase.auth.getUser();
-          user = data.user;
-          if (user) break;
-          await new Promise((res) => setTimeout(res, 200));
-        }
-        if (!cancelled) {
-          const handled = await checkAndHandleDomain(user);
-          if (!handled) setChecking(false);
-        }
-      };
-      pollForUser();
-      return () => {
-        cancelled = true;
-      };
-    } else {
-      // Normal flow: use onAuthStateChange and check current user
-      const checkEmail = async () => {
+      // OAuth callback - handle user verification after Google redirect
+      setChecking(true);
+
+      const verifyUser = async () => {
+        // Wait a bit for Supabase to process the OAuth callback
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         const { data: { user } } = await supabase.auth.getUser();
-        const handled = await checkAndHandleDomain(user);
-        if (!handled) setChecking(false);
+
+        if (user?.email) {
+          const allowedDomains = await fetchAllowedDomains();
+          const emailDomain = user.email.split('@')[1].toLowerCase();
+
+          console.log("[DEBUG] OAuth callback - Domain check:", { 
+            email: user.email, 
+            domain: emailDomain, 
+            allowed: allowedDomains 
+          });
+
+          if (!allowedDomains.includes(emailDomain)) {
+            await supabase.auth.signOut();
+            setError("Please use your UP email account to sign in.");
+            setChecking(false);
+            setIsLoading(false);
+            router.replace("/login");
+          } else {
+            console.log("[DEBUG] Domain allowed, redirecting to home");
+            window.location.href = "/";
+          }
+        } else {
+          console.log("[DEBUG] No user found after OAuth");
+          setChecking(false);
+        }
       };
-      checkEmail();
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        const handled = await checkAndHandleDomain(session?.user);
-        if (!handled) setChecking(false);
-      });
-      unsubscribe = () => subscription.unsubscribe();
-      return unsubscribe;
+
+      verifyUser();
+    } else {
+      // Regular page load - check if already logged in
+      setChecking(true);
+      const checkUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await checkAndHandleDomain(user);
+        } else {
+          setChecking(false);
+        }
+      };
+      checkUser();
     }
-  }, [router, searchParams, checkAndHandleDomain]);
+  }, [searchParams, checkAndHandleDomain, router]);
 
   // Handle Google login
   const handleGoogleLogin = async () => {
