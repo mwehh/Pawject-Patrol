@@ -236,12 +236,37 @@ export default function AdminAnimalDetailPage() {
               height={36}
             />
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <LogIn className="w-6 h-6 text-gray-800" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Notification Icon */}
+            <button className="p-2 hover:bg-gray-200 rounded-full transition">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-800">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </button>
+
+            {/* Logout Button (Desktop only with text, mobile uses just icon) */}
+            <button
+              onClick={handleLogout}
+              className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+              style={{ fontFamily: '"Genty Sans", sans-serif' }}
+            >
+              <span>Logout</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+            {/* Mobile Logout Icon */}
+            <button
+              onClick={handleLogout}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+              aria-label="Logout"
+            >
+              <LogIn className="w-6 h-6 text-gray-800" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -827,19 +852,103 @@ export default function AdminAnimalDetailPage() {
               {animal.other_information || "No additional information provided"}
             </p>
           </div>
+
+          {/* QR CARD */}
+          <div
+            className="flex flex-col justify-center items-center gap-4 flex-[1_0_0] self-stretch p-6 rounded-2xl"
+            style={{ backgroundColor: "#E6E6E6" }}
+          >
+            <h3
+              className="flex items-center gap-[10px] self-stretch p-[10px] rounded-[8px] text-sm font-bold mb-3"
+              style={{ color: "#FFF", backgroundColor: themeColor }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+              >
+                <path
+                  d="M12.4999 1.66699H4.99992C4.55789 1.66699 4.13397 1.84259 3.82141 2.15515C3.50885 2.46771 3.33325 2.89163 3.33325 3.33366V16.667C3.33325 17.109 3.50885 17.5329 3.82141 17.8455C4.13397 18.1581 4.55789 18.3337 4.99992 18.3337H14.9999C15.4419 18.3337 15.8659 18.1581 16.1784 17.8455C16.491 17.5329 16.6666 17.109 16.6666 16.667V5.83366L12.4999 1.66699Z"
+                  stroke="#FFF"
+                  strokeWidth="1.66667"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M11.6667 1.66699V5.00033C11.6667 5.44235 11.8423 5.86628 12.1549 6.17884C12.4675 6.4914 12.8914 6.66699 13.3334 6.66699H16.6667"
+                  stroke="#FFF"
+                  strokeWidth="1.66667"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M8.33341 7.5H6.66675"
+                  stroke="#FFF"
+                  strokeWidth="1.66667"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M13.3334 10.833H6.66675"
+                  stroke="#FFF"
+                  strokeWidth="1.66667"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              QR
+            </h3>
+            <div className="flex flex-row items-center gap-6 self-stretch w-full overflow-hidden">
+              <div className="flex-shrink-0 bg-white p-2 rounded-lg inline-flex items-center justify-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/catalog/${animal.animal_id}` : '')}`}
+                  alt="QR Code"
+                  className="w-24 h-24 sm:w-32 sm:h-32 object-contain"
+                />
+              </div>
+              <p className="flex-1 min-w-0 break-words leading-relaxed text-xs sm:text-sm text-gray-700">
+                {animal.other_information || "No additional information provided."}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Back Button Only */}
-        <div className="space-y-3 pb-6">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 pb-6">
           <button
             onClick={() => router.push("/admin/profiles")}
-            className="w-full py-3 rounded-xl text-white transition-all"
+            className="flex-1 py-3 rounded-xl text-white transition-all"
             style={{
               backgroundColor: themeColor,
               fontFamily: '"Genty Sans", sans-serif',
             }}
           >
             ← Back
+          </button>
+
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex-1 py-3 rounded-xl transition-all font-bold text-sm"
+            style={{
+              backgroundColor: "#E6E6E6",
+              color: "#8D52A7",
+              fontFamily: '"Genty Sans", sans-serif',
+            }}
+          >
+            Delete
+          </button>
+
+          <button
+            onClick={() => router.push(`/admin/profiles/animal/${animal.animal_id}/edit`)}
+            className="flex-1 py-3 rounded-xl text-white transition-all font-bold text-sm"
+            style={{
+              backgroundColor: "#8D52A7",
+              fontFamily: '"Genty Sans", sans-serif',
+            }}
+          >
+            Edit
           </button>
         </div>
       </div>

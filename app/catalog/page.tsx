@@ -79,7 +79,7 @@ function AnimalDetailModal({
   animal: Animal | null;
   onClose: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState<"details" | "health">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "health" | "qr">("details");
 
   if (!animal) return null;
 
@@ -135,6 +135,20 @@ function AnimalDetailModal({
               No photo
             </div>
           )}
+
+          {/* Status Pill - Top Right */}
+          <div
+            className="absolute top-4 right-4 flex items-center justify-center rounded-full border border-white/60 backdrop-blur-md px-4 py-1 z-50 text-white"
+            style={{
+              backgroundColor: "rgba(0,0,0,0.15)",
+              fontFamily: '"Genty Sans", sans-serif',
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            {animal.animal_status || "Ready for Adoption"}
+          </div>
+
           {/* Name Overlay */}
           <div className="absolute bottom-4 left-4 text-white drop-shadow-lg">
             <h2
@@ -239,9 +253,9 @@ function AnimalDetailModal({
               style={{
                 backgroundColor:
                   activeTab === "details"
-                    ? "rgba(255, 255, 255, 0.25)"
+                    ? "#E6E6E6"
                     : "transparent",
-                color: "#E6E6E6",
+                color: activeTab === "details" ? hoverColor : "#E6E6E6",
               }}
             >
               Details
@@ -252,12 +266,25 @@ function AnimalDetailModal({
               style={{
                 backgroundColor:
                   activeTab === "health"
-                    ? "rgba(255, 255, 255, 0.25)"
+                    ? "#E6E6E6"
                     : "transparent",
-                color: "#E6E6E6",
+                color: activeTab === "health" ? hoverColor : "#E6E6E6",
               }}
             >
               Health
+            </button>
+            <button
+              onClick={() => setActiveTab("qr")}
+              className="flex-1 py-2 rounded font-semibold transition-all"
+              style={{
+                backgroundColor:
+                  activeTab === "qr"
+                    ? "#E6E6E6"
+                    : "transparent",
+                color: activeTab === "qr" ? hoverColor : "#E6E6E6",
+              }}
+            >
+              QR
             </button>
           </div>
 
@@ -307,6 +334,30 @@ function AnimalDetailModal({
                     No health information available
                   </p>
                 )}
+              </div>
+            )}
+            {activeTab === "qr" && (
+              <div className="flex flex-col sm:flex-row gap-4 items-start pb-4">
+                <div className="bg-white p-2 rounded-lg flex-shrink-0 mx-auto sm:mx-0 shadow-lg">
+                  {/* Using a free QR generation API to build a real QR code matching the mock */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://pawjectpatrol.app/catalog/${animal.animal_id}`}
+                    alt="QR Code"
+                    width={100}
+                    height={100}
+                    className="rounded"
+                    style={{ backgroundColor: "white" }}
+                  />
+                </div>
+                <div className="flex-1 text-center sm:text-left mt-2 sm:mt-0">
+                  <h3 className="text-lg font-bold mb-1 tracking-wide" style={{ fontFamily: '"Genty Sans", sans-serif' }}>
+                    Help ( {animal.animal_name} ) !
+                  </h3>
+                  <p className="leading-relaxed text-xs opacity-90 drop-shadow-sm text-justify">
+                    {animal.animal_description ||
+                      "He's a medium-sized, scruffy tan dog with patches of darker brown along his back and a white spot on his chest. One ear stands up while the other droops. His fur is dusty a"}
+                  </p>
+                </div>
               </div>
             )}
           </div>
