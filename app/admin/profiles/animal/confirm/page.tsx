@@ -10,6 +10,7 @@ import { Menu, LogIn, X, MapPin } from "lucide-react";
 import { supabase } from "@/utils/supabase/client";
 import { createAnimalProfile } from "@/actions/profiles/admin";
 import { Suspense } from "react";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Helper: convert animal_theme name to hex color
 function getThemeColor(theme: string | null | undefined): string {
@@ -191,12 +192,15 @@ function AnimalProfileConfirmPage() {
               height={36}
             />
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <LogIn className="w-6 h-6 text-gray-800" />
-          </button>
+          <div className="flex items-center gap-2">
+            <AdminNotificationsBell />
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <LogIn className="w-6 h-6 text-gray-800" />
+            </button>
+          </div>
         </div>
       </div>
 

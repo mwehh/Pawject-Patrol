@@ -10,6 +10,7 @@ import { Menu, LogIn, X, Facebook, Instagram, Twitter, Mail } from "lucide-react
 import { updateAnimalProfile } from "@/actions/profiles/admin";
 import dynamic from "next/dynamic";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -353,12 +354,15 @@ export default function EditAnimalPage() {
 							className="flex-shrink-0"
 						/>
 					</div>
-					<Link
-						href={`/admin/profiles/animal/${id}`}
-						className="p-2 hover:bg-gray-100 rounded-lg transition"
-					>
-						<LogIn className="w-6 h-6 text-gray-800" />
-					</Link>
+					<div className="flex items-center gap-2">
+						<AdminNotificationsBell />
+						<Link
+							href={`/admin/profiles/animal/${id}`}
+							className="p-2 hover:bg-gray-100 rounded-lg transition"
+						>
+							<LogIn className="w-6 h-6 text-gray-800" />
+						</Link>
+					</div>
 				</div>
 			</header>
 

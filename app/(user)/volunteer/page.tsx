@@ -9,6 +9,7 @@ import { Menu, LogIn, X, Facebook, Instagram, Twitter, Mail, Calendar, Clock, Ma
 import {  } from "@/actions/volunteer/user";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import UserNotificationsBell from "@/components/UserNotificationsBell";
 import { Suspense } from "react";
 
 // Define Volunteer type
@@ -216,14 +217,29 @@ function UserVolunteerPage() {
           <div className="flex-1 flex justify-center items-center h-full">
             <Image src="/Moodboard2.png" alt="Pawject Patrol Logo" width={77} height={36} />
           </div>
-          <Link href="/" className="p-2 hover:bg-gray-100 rounded-lg transition">
+          <div className="flex items-center gap-2">
+            <UserNotificationsBell />
             <button
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
               onClick={handleLogout}
+              className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+              style={{ fontFamily: '"Genty Sans", sans-serif' }}
+            >
+              <span>Logout</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+              aria-label="Sign out"
             >
               <LogIn className="w-6 h-6 text-gray-800" />
             </button>
-          </Link>
+          </div>
         </div>
       </div>
 

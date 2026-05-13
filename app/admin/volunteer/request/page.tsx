@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { Suspense } from "react";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Field Components
 function Field({ label, placeholder, type = "text", value, onChange, required }: any) {
@@ -251,12 +252,33 @@ function RequestPage() {
             />
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <LogIn className="w-6 h-6 text-gray-800" />
-          </button>
+          <div className="flex items-center gap-2">
+            <AdminNotificationsBell />
+
+            {/* Logout Button (Desktop only with text, mobile uses just icon) */}
+            <button
+              onClick={handleLogout}
+              className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+              style={{ fontFamily: '"Genty Sans", sans-serif' }}
+              type="button"
+            >
+              <span>Logout</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+            {/* Mobile Logout Icon */}
+            <button
+              onClick={handleLogout}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+              aria-label="Sign out"
+              type="button"
+            >
+              <LogIn className="w-6 h-6 text-gray-800" />
+            </button>
+          </div>
         </div>
       </header>
 

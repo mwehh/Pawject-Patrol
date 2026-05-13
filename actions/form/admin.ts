@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { notifyAllAdmins, notifyUser } from "@/actions/notifications/internal";
 
 // Define the structure of an admin animal report summary
 export interface AdminAnimalReportSummary {
@@ -98,6 +99,15 @@ export async function updateReportStatus(reportId: string, status: 'Accepted' | 
 	}
 
 	// Update the report status
+	const { data: before } = await supabase
+		.from('animal_report')
+		.select('report_status, report_title, user_id')
+		.eq('report_id', reportId)
+		.maybeSingle();
+	const oldStatus = (before as any)?.report_status ?? null;
+	const reportTitle = (before as any)?.report_title ?? null;
+	const submitterId = (before as any)?.user_id ?? null;
+
 	const { data, error } = await supabase
 		.from('animal_report')
 		.update({ report_status: status })
@@ -112,6 +122,41 @@ export async function updateReportStatus(reportId: string, status: 'Accepted' | 
 	
 	// Successfully updated
 	console.log('Report status updated successfully:', data);
+
+	// Notify admins (best-effort)
+	try {
+		const newStatus = status;
+		if ((oldStatus ?? null) !== (newStatus ?? null)) {
+			await notifyAllAdmins({
+				sender_id: user.id,
+				event_type: 'animal_report.status_changed',
+				priority: 'high',
+				title: 'Animal report status changed',
+				message: `Animal report${reportTitle ? `: ${reportTitle}` : ''} status changed from ${oldStatus ?? 'Unknown'} to ${newStatus ?? 'Unknown'}.`,
+				entity_type: 'animal_report',
+				entity_id: String(reportId),
+			});
+
+			// Notify the report submitter (best-effort)
+			if (submitterId) {
+				try {
+					await notifyUser(submitterId, {
+						sender_id: user.id,
+						event_type: 'animal_report.status_changed',
+						priority: 'high',
+						title: 'Your animal report status was updated',
+						message: `Your animal report${reportTitle ? `: ${reportTitle}` : ''} status changed to ${newStatus ?? 'Unknown'}.`,
+						entity_type: 'animal_report',
+						entity_id: String(reportId),
+					});
+				} catch (e) {
+					console.error('Failed to notify report submitter (animal_report.status_changed):', e);
+				}
+			}
+		}
+	} catch (e) {
+		console.error('Failed to notify admins (animal_report.status_changed):', e);
+	}
 	return { success: true };
 }
 

@@ -3,6 +3,7 @@
 import { createClient } from '../../utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { syncVolunteerCallStatus } from './admin';
+import { notifyAllAdmins, notifyUser } from '@/actions/notifications/internal';
 
 // Helper to get Supabase client
 async function getSupabase() {
@@ -35,7 +36,7 @@ export async function joinVolunteerCall(callId: string) {
     // Check capacity
     const { data: call } = await supabase
       .from('volunteer_call')
-      .select('capacity, call_status')
+      .select('capacity, call_status, call_title')
       .eq('call_id', callId)
       .single();
 
@@ -72,6 +73,43 @@ export async function joinVolunteerCall(callId: string) {
 
     // Sync the volunteer call status (may change to Filled if capacity reached)
     await syncVolunteerCallStatus(callId);
+
+    // Notify admins (best-effort)
+    try {
+      const callTitle = (call as any)?.call_title ?? null;
+      const userDisplayName =
+        (user.user_metadata as any)?.full_name ||
+        (user.user_metadata as any)?.name ||
+        user.email ||
+        'A user';
+
+      await notifyAllAdmins({
+        sender_id: user.id,
+        event_type: 'volunteer_call.joined',
+        priority: 'normal',
+        title: 'New volunteer signup',
+        message: `${userDisplayName} joined volunteer call${callTitle ? `: ${callTitle}` : '.'}`,
+        entity_type: 'volunteer_call',
+        entity_id: String(callId),
+      });
+
+      // Notify the user themselves (best-effort)
+      try {
+        await notifyUser(user.id, {
+          sender_id: user.id,
+          event_type: 'volunteer_call.joined',
+          priority: 'normal',
+          title: 'You joined a volunteer call',
+          message: `You successfully joined${callTitle ? `: ${callTitle}` : ' a volunteer call'}.`,
+          entity_type: 'volunteer_call',
+          entity_id: String(callId),
+        });
+      } catch (e) {
+        console.error('Failed to notify user (volunteer_call.joined):', e);
+      }
+    } catch (e) {
+      console.error('Failed to notify admins (volunteer_call.joined):', e);
+    }
 
     revalidatePath(`/volunteer/${callId}`);
     revalidatePath('/volunteer');
@@ -160,11 +198,144 @@ export async function leaveVolunteerCall(callId: string) {
     // Sync the volunteer call status (may change back to Active if spots freed up)
     await syncVolunteerCallStatus(callId);
 
+    // Get call details for notification
+    const { data: call } = await supabase
+      .from('volunteer_call')
+      .select('call_title')
+      .eq('call_id', callId)
+      .maybeSingle();
+    const callTitle = (call as any)?.call_title ?? null;
+
+    // Notify admins (best-effort)
+    try {
+      const userDisplayName =
+        (user.user_metadata as any)?.full_name ||
+        (user.user_metadata as any)?.name ||
+        user.email ||
+        'A user';
+
+      await notifyAllAdmins({
+        sender_id: user.id,
+        event_type: 'volunteer_call.left',
+        priority: 'normal',
+        title: 'User left volunteer call',
+        message: `${userDisplayName} left the volunteer call${callTitle ? `: ${callTitle}` : '.'}`,
+        entity_type: 'volunteer_call',
+        entity_id: String(callId),
+      });
+    } catch (e) {
+      console.error('Failed to notify admins (volunteer_call.left):', e);
+    }
+
+    // Notify the user themselves (best-effort)
+    try {
+      await notifyUser(user.id, {
+        sender_id: user.id,
+        event_type: 'volunteer_call.left',
+        priority: 'normal',
+        title: 'You left a volunteer call',
+        message: `You left the volunteer call${callTitle ? `: ${callTitle}` : '.'}`,
+        entity_type: 'volunteer_call',
+        entity_id: String(callId),
+      });
+    } catch (e) {
+      console.error('Failed to notify user (volunteer_call.left):', e);
+    }
+
     revalidatePath(`/volunteer/${callId}`);
     revalidatePath('/volunteer');
     
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message || 'Failed to leave opportunity' };
+  }
+}
+
+// Send reminders to users about volunteer calls starting within the next 24 hours
+export async function sendUpcomingCallReminders() {
+  try {
+    const supabase = await getSupabase();
+    
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Get all volunteer calls the user has joined
+    const { data: responses, error: responsesError } = await supabase
+      .from('volunteer_response')
+      .select('call_id')
+      .eq('user_id', user.id);
+
+    if (responsesError || !responses || responses.length === 0) {
+      return { success: true, notificationsSent: 0 };
+    }
+
+    const callIds = responses.map(r => r.call_id);
+
+    // Get details of all those calls
+    const { data: calls, error: callsError } = await supabase
+      .from('volunteer_call')
+      .select('call_id, call_title, call_starttime, call_status')
+      .in('call_id', callIds);
+
+    if (callsError || !calls) {
+      return { success: true, notificationsSent: 0 };
+    }
+
+    const now = new Date();
+    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    let notificationsSent = 0;
+
+    // Check each call for upcoming starts within 24 hours
+    for (const call of calls) {
+      if (!call.call_starttime || call.call_status !== 'Active' && call.call_status !== 'Ongoing') {
+        continue;
+      }
+
+      const startTime = new Date(call.call_starttime);
+      const timeUntilStart = startTime.getTime() - now.getTime();
+      const hoursUntilStart = timeUntilStart / (60 * 60 * 1000);
+
+      // Send notification if call starts between now and 24 hours from now
+      if (timeUntilStart > 0 && timeUntilStart <= 24 * 60 * 60 * 1000) {
+        try {
+          // Check if we already sent a reminder notification for this call
+          const { data: existingNotifications } = await supabase
+            .from('notifications')
+            .select('notification_id')
+            .eq('recipient_id', user.id)
+            .eq('entity_id', call.call_id)
+            .eq('event_type', 'volunteer_call.upcoming_reminder')
+            .maybeSingle();
+
+          // Only send if we haven't already sent a reminder for this call
+          if (!existingNotifications) {
+            const minutesUntilStart = Math.floor(timeUntilStart / (60 * 1000));
+            const hourText = hoursUntilStart < 2 ? `${minutesUntilStart} minutes` : `${Math.floor(hoursUntilStart)} hours`;
+            
+            await notifyUser(user.id, {
+              sender_id: null,
+              event_type: 'volunteer_call.upcoming_reminder',
+              priority: 'high',
+              title: 'Upcoming volunteer call',
+              message: `Reminder: "${call.call_title}" starts in ${hourText}.`,
+              entity_type: 'volunteer_call',
+              entity_id: String(call.call_id),
+            });
+            
+            notificationsSent++;
+          }
+        } catch (e) {
+          console.error(`Failed to send reminder for call ${call.call_id}:`, e);
+        }
+      }
+    }
+
+    return { success: true, notificationsSent };
+  } catch (e: any) {
+    console.error('sendUpcomingCallReminders error:', e);
+    return { success: false, error: e?.message || 'Failed to send reminders' };
   }
 }

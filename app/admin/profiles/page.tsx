@@ -20,6 +20,7 @@ import { FaMars, FaVenus } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Helper: convert animal_theme name to hex color
 function getThemeColor(theme: string | null): string {
@@ -66,6 +67,11 @@ export default function CatalogPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Search state
   const [search, setSearch] = useState("");
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.replace("/admin/login");
+  };
 
   useEffect(() => {
     // Check if the user is authenticated
@@ -188,14 +194,31 @@ export default function CatalogPage() {
                   height={36}
                 />
               </div>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition"
-                onClick={async () => {
-                await supabase.auth.signOut();
-                router.replace("/admin/login");
-                }}
-              >
-                <LogIn className="w-6 h-6 text-gray-800" />
-              </button>
+              <div className="flex items-center gap-2">
+                <AdminNotificationsBell />
+
+                {/* Logout Button (Desktop only with text, mobile uses just icon) */}
+                <button
+                  onClick={handleLogout}
+                  className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+                  style={{ fontFamily: '"Genty Sans", sans-serif' }}
+                >
+                  <span>Logout</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </button>
+                {/* Mobile Logout Icon */}
+                <button
+                  onClick={handleLogout}
+                  className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+                  aria-label="Sign out"
+                >
+                  <LogIn className="w-6 h-6 text-gray-800" />
+                </button>
+              </div>
             </div>
           </div>
           {/* Page header below navigation, styled like animal profile form */}

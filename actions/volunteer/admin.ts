@@ -9,6 +9,16 @@ export async function uncompleteAction(formData: FormData): Promise<void> {
       console.error("uncompleteAction missing id");
       return;
     }
+    const supabase = await getSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: before } = await supabase
+      .from("volunteer_call")
+      .select("call_status, call_title")
+      .eq("call_id", id)
+      .maybeSingle();
+    const oldStatus = (before as any)?.call_status ?? null;
+    const callTitle = (before as any)?.call_title ?? null;
+
     // Use service client to bypass RLS for status update
     const serviceClient = getServiceClient();
     const { error } = await serviceClient
@@ -18,6 +28,22 @@ export async function uncompleteAction(formData: FormData): Promise<void> {
     if (error) {
       console.error("uncompleteAction error:", error);
     } else {
+      try {
+        const newStatus = 'Active';
+        if ((oldStatus ?? null) !== newStatus) {
+          await notifyAllAdmins({
+            sender_id: user?.id ?? null,
+            event_type: 'volunteer_call.status_changed',
+            priority: 'high',
+            title: 'Volunteer call status changed',
+            message: buildStatusChangeMessage('Volunteer call', callTitle, oldStatus, newStatus),
+            entity_type: 'volunteer_call',
+            entity_id: String(id),
+          });
+        }
+      } catch (e) {
+        console.error('Failed to notify admins (volunteer_call.status_changed):', e);
+      }
       try {
         revalidatePath('/admin/volunteer');
         revalidatePath(`/admin/volunteer/${id}`);
@@ -38,6 +64,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../../utils/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { notifyAllAdmins, notifyUsers } from "@/actions/notifications/internal";
 
 // Define the VolunteerCall type
 type VolunteerCall = {
@@ -51,6 +78,70 @@ type VolunteerCall = {
   call_status?: string | null;
   created_at?: string | null;
 };
+
+function formatChangeValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "empty";
+  return String(value);
+}
+
+function areComparableValuesEqual(field: string, oldValue: unknown, newValue: unknown): boolean {
+  if (field === "call_starttime" || field === "call_endtime") {
+    const oldTime = oldValue ? Date.parse(String(oldValue)) : NaN;
+    const newTime = newValue ? Date.parse(String(newValue)) : NaN;
+    if (!Number.isNaN(oldTime) && !Number.isNaN(newTime)) return oldTime === newTime;
+  }
+  return (oldValue ?? null) === (newValue ?? null);
+}
+
+function buildStatusChangeMessage(
+  entityLabel: string,
+  entityName: string | null | undefined,
+  oldStatus: string | null,
+  newStatus: string | null,
+) {
+  const namePart = entityName ? `: ${entityName}` : "";
+  return `${entityLabel}${namePart} status changed from ${oldStatus ?? "Unknown"} to ${newStatus ?? "Unknown"}.`;
+}
+
+function buildVolunteerUpdateMessage(
+  callTitle: string | null | undefined,
+  before: any,
+  updateData: Record<string, unknown>,
+) {
+  const labels: Record<string, string> = {
+    call_title: "title",
+    call_details: "details",
+    call_location: "location",
+    call_starttime: "start time",
+    call_endtime: "end time",
+    capacity: "capacity",
+    call_status: "status",
+  };
+  const orderedFields = [
+    "call_title",
+    "call_details",
+    "call_location",
+    "call_starttime",
+    "call_endtime",
+    "capacity",
+    "call_status",
+  ];
+
+  const changes: string[] = [];
+  for (const field of orderedFields) {
+    if (!(field in updateData)) continue;
+    const oldValue = before?.[field] ?? null;
+    const newValue = (updateData as any)[field] ?? null;
+    if (areComparableValuesEqual(field, oldValue, newValue)) continue;
+    changes.push(
+      `${labels[field]} changed from ${formatChangeValue(oldValue)} to ${formatChangeValue(newValue)}`,
+    );
+  }
+
+  const titlePart = callTitle ? `: ${callTitle}` : "";
+  if (changes.length === 0) return `Volunteer call${titlePart} was updated.`;
+  return `Volunteer call${titlePart} was updated. ${changes.join("; ")}.`;
+}
 
 // Helper function to get Supabase client
 async function getSupabase() {
@@ -136,6 +227,27 @@ export async function getVolunteerResponses(callId: string) {
   }
 }
 
+// Helper function to get user IDs who joined a volunteer call
+export async function getUsersJoinedCall(callId: string): Promise<string[]> {
+  try {
+    const serviceClient = getServiceClient();
+    
+    const { data: responses, error } = await serviceClient
+      .from('volunteer_response')
+      .select('user_id')
+      .eq('call_id', callId);
+    
+    if (error) {
+      console.error("getUsersJoinedCall error:", error);
+      return [];
+    }
+    
+    return (responses || []).map(r => r.user_id).filter(Boolean);
+  } catch (e) {
+    console.error("getUsersJoinedCall exception:", e);
+    return [];
+  }
+}
 
 // Function to automatically update volunteer call status based on capacity and time
 export async function syncVolunteerCallStatus(callId: string) {
@@ -332,6 +444,8 @@ export async function getVolunteerCall(id?: string) {
     // Create Supabase client
     const supabase = await getSupabase();
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     // Query the volunteer_call table for the specified ID
     const { data, error } = await supabase.from("volunteer_call").select("*").eq("call_id", id).single();
     
@@ -373,6 +487,10 @@ export async function createAction(formData: FormData): Promise<void> {
     // Check for service role key to use elevated privileges
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       try {
+        // Get current user for sender_id
+        const supabase = await getSupabase();
+        const { data: { user } } = await supabase.auth.getUser();
+
         // Create Supabase client with service role
         const svc = createSupabaseClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -386,6 +504,25 @@ export async function createAction(formData: FormData): Promise<void> {
         if (res.error) {
           console.error("createAction (service) error:", res.error);
           return;
+        }
+
+        // Notify admins (best-effort)
+        try {
+          const inserted = Array.isArray(res.data) ? res.data[0] : null;
+          const callId = (inserted as any)?.call_id;
+          if (callId) {
+            await notifyAllAdmins({
+              sender_id: user?.id ?? null,
+              event_type: 'volunteer_call.created',
+              priority: 'normal',
+              title: 'New volunteer call created',
+              message: payload.call_title ? `New volunteer call: ${payload.call_title}` : 'A new volunteer call was created.',
+              entity_type: 'volunteer_call',
+              entity_id: String(callId),
+            });
+          }
+        } catch (e) {
+          console.error('Failed to notify admins (volunteer_call.created):', e);
         }
 
         // Revalidate the admin volunteer list so the UI updates immediately
@@ -411,6 +548,8 @@ export async function createAction(formData: FormData): Promise<void> {
     // Create Supabase client
     const supabase = await getSupabase();
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     // Insert the new volunteer call into the database
     const { data, error } = await supabase.from("volunteer_call").insert(payload).select();
 
@@ -418,6 +557,25 @@ export async function createAction(formData: FormData): Promise<void> {
     if (error) {
       console.error("createAction error:", error);
       return;
+    }
+
+    // Notify admins (best-effort)
+    try {
+      const inserted = Array.isArray(data) ? data[0] : null;
+      const callId = (inserted as any)?.call_id;
+      if (callId) {
+        await notifyAllAdmins({
+          sender_id: user?.id ?? null,
+          event_type: 'volunteer_call.created',
+          priority: 'normal',
+          title: 'New volunteer call created',
+          message: payload.call_title ? `New volunteer call: ${payload.call_title}` : 'A new volunteer call was created.',
+          entity_type: 'volunteer_call',
+          entity_id: String(callId),
+        });
+      }
+    } catch (e) {
+      console.error('Failed to notify admins (volunteer_call.created):', e);
     }
 
     // After creating, revalidate the admin list and redirect back
@@ -456,6 +614,17 @@ export async function updateAction(formData: FormData): Promise<void> {
     // Create Supabase client
     const supabase = await getSupabase();
 
+    // Capture previous values (best-effort) to describe the update
+    const { data: before } = await supabase
+      .from("volunteer_call")
+      .select("call_title, call_details, call_location, call_starttime, call_endtime, capacity, call_status")
+      .eq("call_id", id)
+      .maybeSingle();
+    const oldTitle = (before as any)?.call_title ?? null;
+    const oldStatus = (before as any)?.call_status ?? null;
+
+    const { data: { user } } = await supabase.auth.getUser();
+
     // Build the update data object from form data
     const updateData: any = {};
 
@@ -486,6 +655,25 @@ export async function updateAction(formData: FormData): Promise<void> {
         revalidatePath('/admin/volunteer'); 
         revalidatePath(`/admin/volunteer/${id}`);
       } catch (_) {}
+
+      // Notify admins (best-effort)
+      try {
+        const newTitle = updateData.call_title ?? oldTitle;
+        const newStatus = updateData.call_status ?? oldStatus;
+        const statusChanged = (oldStatus ?? null) !== (newStatus ?? null);
+
+        await notifyAllAdmins({
+          sender_id: user?.id ?? null,
+          event_type: 'volunteer_call.updated',
+          priority: statusChanged ? 'high' : 'normal',
+          title: 'Volunteer call updated',
+          message: buildVolunteerUpdateMessage(newTitle, before, updateData),
+          entity_type: 'volunteer_call',
+          entity_id: String(id),
+        });
+      } catch (e) {
+        console.error('Failed to notify admins (volunteer_call.updated):', e);
+      }
     }
 
     // Successful completion: redirect back to the volunteer detail page
@@ -516,6 +704,16 @@ export async function completeAction(formData: FormData): Promise<void> {
       return;
     }
 
+    const supabase = await getSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: before } = await supabase
+      .from("volunteer_call")
+      .select("call_status, call_title")
+      .eq("call_id", id)
+      .maybeSingle();
+    const oldStatus = (before as any)?.call_status ?? null;
+    const callTitle = (before as any)?.call_title ?? null;
+
     // Use service client to bypass RLS for status update
     const serviceClient = getServiceClient();
 
@@ -527,6 +725,40 @@ export async function completeAction(formData: FormData): Promise<void> {
     if (error) {
       console.error("completeAction error:", error);
     } else {
+      try {
+        const newStatus = 'Completed';
+        if ((oldStatus ?? null) !== newStatus) {
+          await notifyAllAdmins({
+            sender_id: user?.id ?? null,
+            event_type: 'volunteer_call.status_changed',
+            priority: 'high',
+            title: 'Volunteer call status changed',
+            message: buildStatusChangeMessage('Volunteer call', callTitle, oldStatus, newStatus),
+            entity_type: 'volunteer_call',
+            entity_id: String(id),
+          });
+
+          // Notify joined users (best-effort)
+          try {
+            const joinedUserIds = await getUsersJoinedCall(id);
+            if (joinedUserIds.length > 0) {
+              await notifyUsers(joinedUserIds, {
+                sender_id: user?.id ?? null,
+                event_type: 'volunteer_call.completed',
+                priority: 'high',
+                title: 'Volunteer call completed',
+                message: `The volunteer call${callTitle ? ` "${callTitle}"` : ''} has been completed.`,
+                entity_type: 'volunteer_call',
+                entity_id: String(id),
+              });
+            }
+          } catch (e) {
+            console.error('Failed to notify users (volunteer_call.completed):', e);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to notify admins (volunteer_call.status_changed):', e);
+      }
       try {
         revalidatePath('/admin/volunteer');
         revalidatePath(`/admin/volunteer/${id}`);
@@ -560,6 +792,17 @@ export async function cancelAction(formData: FormData): Promise<void> {
     // Create Supabase client
     const supabase = await getSupabase();
 
+    // Capture previous status/title for notification
+    const { data: before } = await supabase
+      .from("volunteer_call")
+      .select("call_status, call_title")
+      .eq("call_id", id)
+      .maybeSingle();
+    const oldStatus = (before as any)?.call_status ?? null;
+    const callTitle = (before as any)?.call_title ?? null;
+
+    const { data: { user } } = await supabase.auth.getUser();
+
     // Update the status to Cancelled
     const { error } = await supabase
       .from("volunteer_call")
@@ -575,6 +818,42 @@ export async function cancelAction(formData: FormData): Promise<void> {
         revalidatePath('/admin/volunteer');
         revalidatePath(`/admin/volunteer/${id}`);
       } catch (_) {}
+
+      // Notify admins (best-effort)
+      try {
+        const newStatus = 'Cancelled';
+        if ((oldStatus ?? null) !== newStatus) {
+          await notifyAllAdmins({
+            sender_id: user?.id ?? null,
+            event_type: 'volunteer_call.cancelled',
+            priority: 'high',
+            title: 'Volunteer call status changed',
+            message: buildStatusChangeMessage('Volunteer call', callTitle, oldStatus, newStatus),
+            entity_type: 'volunteer_call',
+            entity_id: String(id),
+          });
+
+          // Notify joined users (best-effort)
+          try {
+            const joinedUserIds = await getUsersJoinedCall(id);
+            if (joinedUserIds.length > 0) {
+              await notifyUsers(joinedUserIds, {
+                sender_id: user?.id ?? null,
+                event_type: 'volunteer_call.cancelled',
+                priority: 'high',
+                title: 'Volunteer call cancelled',
+                message: `The volunteer call${callTitle ? ` "${callTitle}"` : ''} has been cancelled.`,
+                entity_type: 'volunteer_call',
+                entity_id: String(id),
+              });
+            }
+          } catch (e) {
+            console.error('Failed to notify users (volunteer_call.cancelled):', e);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to notify admins (volunteer_call.cancelled):', e);
+      }
     }
 
     // Redirect back to the volunteer detail page
@@ -607,6 +886,17 @@ export async function uncancelAction(formData: FormData): Promise<void> {
     // Create Supabase client
     const supabase = await getSupabase();
 
+    // Capture previous status/title for notification
+    const { data: before } = await supabase
+      .from("volunteer_call")
+      .select("call_status, call_title")
+      .eq("call_id", id)
+      .maybeSingle();
+    const oldStatus = (before as any)?.call_status ?? null;
+    const callTitle = (before as any)?.call_title ?? null;
+
+    const { data: { user } } = await supabase.auth.getUser();
+
     // Update the status to Active
     const { error } = await supabase
       .from("volunteer_call")
@@ -622,6 +912,24 @@ export async function uncancelAction(formData: FormData): Promise<void> {
         revalidatePath('/admin/volunteer');
         revalidatePath(`/admin/volunteer/${id}`);
       } catch (_) {}
+
+      // Notify admins (best-effort)
+      try {
+        const newStatus = 'Active';
+        if ((oldStatus ?? null) !== newStatus) {
+          await notifyAllAdmins({
+            sender_id: user?.id ?? null,
+            event_type: 'volunteer_call.cancelled',
+            priority: 'high',
+            title: 'Volunteer call status changed',
+            message: buildStatusChangeMessage('Volunteer call', callTitle, oldStatus, newStatus),
+            entity_type: 'volunteer_call',
+            entity_id: String(id),
+          });
+        }
+      } catch (e) {
+        console.error('Failed to notify admins (volunteer_call.cancelled):', e);
+      }
     }
 
     // Redirect back to the volunteer detail page
@@ -655,6 +963,10 @@ export async function deleteAction(formData: FormData): Promise<void> {
     // Perform the deletion
     let error: any = null;
 
+    // Get current user for sender_id
+    const supabase = await getSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+
     // Use service role if available for elevated privileges
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
       try {
@@ -664,8 +976,9 @@ export async function deleteAction(formData: FormData): Promise<void> {
           process.env.SUPABASE_SERVICE_ROLE_KEY!,
         );
 
-        // Fetch the volunteer call before deletion for any necessary checks or logging
-        const before = await svc.from("volunteer_call").select("*").eq("call_id", id).maybeSingle();
+        // Fetch the volunteer call before deletion for notification
+        const { data: beforeData } = await svc.from("volunteer_call").select("call_title").eq("call_id", id).maybeSingle();
+        const callTitle = (beforeData as any)?.call_title ?? null;
        
         // Delete the volunteer call from the database
         const res = await svc.from("volunteer_call").delete().eq("call_id", id).select();
@@ -675,6 +988,22 @@ export async function deleteAction(formData: FormData): Promise<void> {
 
         // Log error if occurred
         if (error) console.error("deleteAction (service) error:", error);
+        else {
+          // Notify admins (best-effort)
+          try {
+            await notifyAllAdmins({
+              sender_id: user?.id ?? null,
+              event_type: 'volunteer_call.deleted',
+              priority: 'high',
+              title: 'Volunteer call deleted',
+              message: `Volunteer call${callTitle ? `: ${callTitle}` : ''} has been deleted.`,
+              entity_type: 'volunteer_call',
+              entity_id: String(id),
+            });
+          } catch (e) {
+            console.error('Failed to notify admins (volunteer_call.deleted):', e);
+          }
+        }
       } catch (e) {
         // If Next's redirect throws, rethrow so the runtime can handle navigation
         if (e && typeof e === 'object' && (String((e as any).digest || '').startsWith('NEXT_REDIRECT') || String((e as any).message || '').includes('NEXT_REDIRECT'))) {
@@ -687,20 +1016,37 @@ export async function deleteAction(formData: FormData): Promise<void> {
         return;
       }
     } else {
-      // Create Supabase client
-      const supabase = await getSupabase();
+      // Create Supabase client with regular auth
+      const sbClient = await getSupabase();
 
-      // Fetch the volunteer call before deletion for any necessary checks or logging
-      const before = await supabase.from("volunteer_call").select("*").eq("call_id", id).maybeSingle();
+      // Fetch the volunteer call before deletion for notification
+      const { data: beforeData } = await sbClient.from("volunteer_call").select("call_title").eq("call_id", id).maybeSingle();
+      const callTitle = (beforeData as any)?.call_title ?? null;
       
       // Delete the volunteer call from the database
-      const res = await supabase.from("volunteer_call").delete().eq("call_id", id).select();
+      const res = await sbClient.from("volunteer_call").delete().eq("call_id", id).select();
       
       // Handle any errors
       error = res.error;
 
       // Log error if occurred
       if (error) console.error("deleteAction error:", error);
+      else {
+        // Notify admins (best-effort)
+        try {
+          await notifyAllAdmins({
+            sender_id: user?.id ?? null,
+            event_type: 'volunteer_call.deleted',
+            priority: 'high',
+            title: 'Volunteer call deleted',
+            message: `Volunteer call${callTitle ? `: ${callTitle}` : ''} has been deleted.`,
+            entity_type: 'volunteer_call',
+            entity_id: String(id),
+          });
+        } catch (e) {
+          console.error('Failed to notify admins (volunteer_call.deleted):', e);
+        }
+      }
     }
 
       // Revalidate the admin volunteer list so the UI updates immediately

@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { supabase } from "@/utils/supabase/client";
 import { updateReportStatus } from "@/actions/form/admin";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Dynamically import the AdminMapView component for client-side rendering only
 const AdminMapView = dynamic(() => import("@/components/AdminMapView"), {
@@ -299,15 +300,18 @@ export default function AdminReportDetail({
               height={36}
             />
           </div>
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.replace("/admin/login");
-            }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <LogIn className="w-6 h-6 text-gray-800" />
-          </button>
+          <div className="flex items-center gap-2">
+            <AdminNotificationsBell />
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.replace("/admin/login");
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <LogIn className="w-6 h-6 text-gray-800" />
+            </button>
+          </div>
         </div>
       </div>
 

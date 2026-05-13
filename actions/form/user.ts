@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { notifyAllAdmins } from "@/actions/notifications/internal";
 
 export interface AnimalReportInsert {
 	report_title?: string;       // text
@@ -86,6 +87,26 @@ export async function createAnimalReport(data: AnimalReportInsert) {
 	if (error) {
 		console.error('createAnimalReport error', error);
 		return { success: false, error: error.message };
+	}
+
+	// Notify admins (best-effort)
+	try {
+		const notifyRes = await notifyAllAdmins({
+			sender_id: user.id,
+			event_type: 'animal_report.created',
+			priority: 'high',
+			title: 'New animal report submitted',
+			message: `A new animal report was submitted${data.report_title ? `: ${data.report_title}` : '.'}`,
+			entity_type: 'animal_report',
+			entity_id: String(inserted.report_id),
+		});
+		if (notifyRes.inserted === 0) {
+			console.warn('[createAnimalReport] Admin notification not inserted (0 recipients).', {
+				report_id: inserted.report_id,
+			});
+		}
+	} catch (e) {
+		console.error('Failed to notify admins (animal_report.created):', e);
 	}
 
 	// If photo is provided, upload it and update the report

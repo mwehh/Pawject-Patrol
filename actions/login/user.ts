@@ -15,7 +15,9 @@ export const signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${originUrl}/login`,
+      // Use the SSR callback route to exchange the code for a session server-side.
+      // IMPORTANT: Add this URL to Supabase Auth Redirect URLs for local dev.
+      redirectTo: `${originUrl}/auth/callback?next=/`,
     },
   });
 

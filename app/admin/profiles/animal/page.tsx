@@ -18,6 +18,7 @@ import {
   Mail,
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 const MapView = dynamic(() => import("@/components/MapView"), { ssr: false });
 
@@ -375,13 +376,16 @@ export default function ReportFormSample() {
               className="flex-shrink-0"
             />
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-            aria-label="Logout"
-          >
-            <X className="w-6 h-6 text-gray-800" />
-          </button>
+          <div className="flex items-center gap-2">
+            <AdminNotificationsBell />
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              aria-label="Logout"
+            >
+              <X className="w-6 h-6 text-gray-800" />
+            </button>
+          </div>
         </div>
       </header>
 

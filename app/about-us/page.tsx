@@ -18,6 +18,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
+import UserNotificationsBell from "@/components/UserNotificationsBell";
 
 
 export default function Home() {
@@ -27,6 +29,11 @@ export default function Home() {
   const [userEmail, setUserEmail] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarVariant, setSidebarVariant] = useState<"user" | "admin" | "guest">("guest");
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.replace(sidebarVariant === "admin" ? "/admin/login" : "/login");
+  };
 
   // Fetch user info and set sidebar variant
   useEffect(() => {
@@ -159,38 +166,58 @@ export default function Home() {
                 className="flex-shrink-0"
               />
             </div>
-            {/* Login/Logout Button */}
-            <button
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
-              onClick={async () => {
-                // If not authenticated, go to /login
-                if (!isAuthenticated) {
-                  router.push("/login");
-                  return;
-                }
-                // Check if admin by querying admin table
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                  const { data: adminData, error } = await supabase
-                    .from('admin')
-                    .select('auth_id')
-                    .eq('auth_id', user.id)
-                    .single();
-                  if (adminData && !error) {
-                    // Admin: logout and go to /admin/login
-                    await supabase.auth.signOut();
-                    router.replace("/admin/login");
-                    return;
-                  }
-                }
-                // User: logout and go to /login
-                await supabase.auth.signOut();
-                router.replace("/login");
-              }}
-              aria-label={isAuthenticated ? "Logout" : "Login"}
-            >
-                <LogIn className="w-6 h-6 text-gray-800" />
-            </button>
+            <div className="flex items-center gap-2">
+              {isAuthenticated && sidebarVariant === "admin" ? (
+                <AdminNotificationsBell />
+              ) : null}
+
+              {isAuthenticated && sidebarVariant === "user" ? (
+                <UserNotificationsBell />
+              ) : null}
+
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={handleLogout}
+                    className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+                    style={{ fontFamily: '"Genty Sans", sans-serif' }}
+                  >
+                    <span>Logout</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+                    aria-label="Sign out"
+                  >
+                    <LogIn className="w-6 h-6 text-gray-800" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  onClick={() => router.push("/login")}
+                  aria-label="Login"
+                >
+                  <LogIn className="w-6 h-6 text-gray-800" />
+                </button>
+              )}
+            </div>
           </div>
         </header>
 

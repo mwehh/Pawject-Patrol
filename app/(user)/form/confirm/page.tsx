@@ -10,6 +10,7 @@ import dynamic from "next/dynamic";
 import { createAnimalReport } from "@/actions/form/user";
 import { getGlobalPhotoFile } from "@/app/(user)/form/page";
 import Sidebar from "@/components/Sidebar";
+import UserNotificationsBell from "@/components/UserNotificationsBell";
 import { supabase } from "@/utils/supabase/client";
 import Link from "next/link";
 import {
@@ -253,12 +254,28 @@ function ConfirmationContent() {
 									className="flex-shrink-0"
 								/>
 							</div>
-							<button
-								onClick={handleLogout}
-								className="p-2 hover:bg-gray-100 rounded-lg transition"
-							>
-								<LogIn className="w-6 h-6 text-gray-800" />
-							</button>
+							<div className="flex items-center gap-2">
+								<UserNotificationsBell />
+								<button
+									onClick={handleLogout}
+									className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+									style={{ fontFamily: '"Genty Sans", sans-serif' }}
+								>
+									<span>Logout</span>
+									<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+										<polyline points="16 17 21 12 16 7" />
+										<line x1="21" y1="12" x2="9" y2="12" />
+									</svg>
+								</button>
+								<button
+									onClick={handleLogout}
+									className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+									aria-label="Sign out"
+								>
+									<LogIn className="w-6 h-6 text-gray-800" />
+								</button>
+							</div>
 						</div>
 					</header>
 

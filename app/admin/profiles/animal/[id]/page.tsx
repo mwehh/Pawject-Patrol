@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/utils/supabase/client";
 import { deleteAnimalProfile } from "@/actions/profiles/admin";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Animal type definition
 type Animal = {
@@ -236,12 +237,15 @@ export default function AdminAnimalDetailPage() {
               height={36}
             />
           </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <LogIn className="w-6 h-6 text-gray-800" />
-          </button>
+          <div className="flex items-center gap-2">
+            <AdminNotificationsBell />
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <LogIn className="w-6 h-6 text-gray-800" />
+            </button>
+          </div>
         </div>
       </div>
 

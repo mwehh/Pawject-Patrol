@@ -278,6 +278,19 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, userName, userEma
 										}
 									}, 400);
 								},
+							},
+							{
+								label: "Notifications",
+								icon: (
+									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+										<path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 21 3 23 3 23H21C21 23 18 21 18 8Z" stroke="#5E9BBA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+										<path d="M14.73 21C14.5542 21.3031 14.3019 21.5547 13.9982 21.7295C13.6946 21.9044 13.3504 21.9965 13 21.9965C12.6496 21.9965 12.3054 21.9044 12.0018 21.7295C11.6982 21.5547 11.4458 21.3031 11.27 21" stroke="#5E9BBA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+									</svg>
+								),
+								onClick: () => {
+									setSidebarOpen(false);
+									router.push(variant === "admin" ? "/admin/notifications" : "/notifications");
+								},
 							}].map((item) => (
 								<button
 									key={item.label}
