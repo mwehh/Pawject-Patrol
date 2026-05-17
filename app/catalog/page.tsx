@@ -17,9 +17,10 @@ import {
   Mail,
 } from "lucide-react";
 import { FaMars, FaVenus } from "react-icons/fa";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import PawfectMatchModal from "@/components/PawfectMatchModal";
 
 // Panel colors
 const panelColors = ["#689668", "#DCB57E", "#5E9BBA", "#C575AD", "#8D52A7"];
@@ -373,6 +374,7 @@ export default function CatalogPage() {
   const [filter, setFilter] = useState<"all" | "cat" | "dog">("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -387,6 +389,17 @@ export default function CatalogPage() {
 
   // Modal state
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [pawfectMatchOpen, setPawfectMatchOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams?.get("pawfectmatch") === "true") {
+      setPawfectMatchOpen(true);
+      // Optional: clear the param from the URL so it doesn't reopen on refresh
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, '', '/catalog');
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Check if the user is authenticated and set sidebar variant
@@ -779,6 +792,12 @@ export default function CatalogPage() {
       <AnimalDetailModal
         animal={selectedAnimal}
         onClose={() => setSelectedAnimal(null)}
+      />
+
+      {/* Pawfect Match Modal */}
+      <PawfectMatchModal
+        isOpen={pawfectMatchOpen}
+        onClose={() => setPawfectMatchOpen(false)}
       />
     </>
   );
