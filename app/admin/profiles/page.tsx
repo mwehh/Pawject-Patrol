@@ -170,7 +170,7 @@ export default function CatalogPage() {
           userEmail={userEmail}
           router={router}
         />
-        <div className="max-w-6xl mx-auto px-4 py-0 pl-[24px] pr-[24px]">
+        <div className="max-w-6xl mx-auto px-4 py-0 pl-6 pr-6">
           {/* Navigation header */}
           <div className="flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10">
             <div className="w-full max-w-[1200px] mx-auto flex items-center justify-between">
@@ -313,7 +313,7 @@ export default function CatalogPage() {
                   {/* Image Section */}
                   <div className="relative h-64 w-full bg-white">
                     <Image
-                      src={pet.animal_photo || "/default-animal.jpg"}
+                      src={pet.animal_photo || "/paws/paws1.png"}
                       alt={pet.animal_name || "Animal"}
                       fill
                       className="object-cover"

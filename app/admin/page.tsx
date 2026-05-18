@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import AdminAdoptionSection from "@/components/AdminAdoptionSection";
 
 // Admin dashboard page component - displays stats and navigation cards
 export default function HeaderAndBackground() {
@@ -283,7 +284,7 @@ export default function HeaderAndBackground() {
                 alt="Pawject Patrol Logo"
                 width={77}
                 height={36}
-                className="flex-shrink-0"
+                className="shrink-0"
               />
             </div>
 
@@ -322,7 +323,7 @@ export default function HeaderAndBackground() {
 
         <div className="max-w-6xl mx-auto px-4 py-6 w-full">
           {/* Wrapper Container */}
-          <div className="bg-[#E1E69D] rounded-2xl p-2 md:p-5 lg:p-8 pl-[24px] pr-[24px]">
+          <div className="bg-[#E1E69D] rounded-2xl p-2 md:p-5 lg:p-8 pl-6 pr-6">
             <div className="flex flex-col lg:flex-row gap-10 items-start lg:items-center justify-between">
               {/* Welcome Message */}
               <div className="flex-1 flex flex-col gap-4">
@@ -372,11 +373,11 @@ export default function HeaderAndBackground() {
                   {/* Total Animals */}
                   <div
                     className="
-        flex flex-col justify-center items-center text-center
-        h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
-        p-[10px] gap-[4px]
-        rounded-[16px] bg-[#DCB57E]
-      "
+                    flex flex-col justify-center items-center text-center
+                    h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
+                    p-2.5 gap-1
+                    rounded-2xl bg-[#DCB57E]
+                  "
                   >
                     <span className="text-xl md:text-2xl lg:text-2xl font-medium text-[#E6E6E6]">
                       {loading ? "..." : totalAnimals}
@@ -389,11 +390,11 @@ export default function HeaderAndBackground() {
                   {/* Animal Reports */}
                   <div
                     className="
-        flex flex-col justify-center items-center text-center
-        h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
-        p-[10px] gap-[4px]
-        rounded-[16px] bg-[#5E9BBA]
-      "
+                    flex flex-col justify-center items-center text-center
+                    h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
+                    p-2.5 gap-1
+                    rounded-2xl bg-[#5E9BBA]
+                  "
                   >
                     <span className="text-xl md:text-xl lg:text-2xl font-medium text-[#E6E6E6]">
                       {loading ? "..." : animalReports}
@@ -406,11 +407,11 @@ export default function HeaderAndBackground() {
                   {/* Volunteer Requests */}
                   <div
                     className="
-        flex flex-col justify-center items-center text-center
-        h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
-        p-[10px] gap-[4px]
-        rounded-[16px] bg-[#C575AD]
-      "
+                    flex flex-col justify-center items-center text-center
+                    h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
+                    p-2.5 gap-1
+                    rounded-2xl bg-[#C575AD]
+                  "
                   >
                     <span className="text-xl md:text-2xl lg:text-2xl font-medium text-[#E6E6E6]">
                       {loading ? "..." : volunteerRequests}
@@ -423,7 +424,7 @@ export default function HeaderAndBackground() {
               </div>
 
               {/* Dog Image */}
-              <div className="w-full lg:w-auto lg:flex-shrink-0">
+              <div className="w-full lg:w-auto lg:shrink-0">
                 <img
                   src="/dog_admin.jpg"
                   alt="Dog"
@@ -444,7 +445,7 @@ export default function HeaderAndBackground() {
                 <a
                   href="/admin/profiles"
                   className="
-    flex h-[86px] min-w-[270px] pl-[10px]
+    flex h-[86px] min-w-[270px] pl-2.5
     justify-between items-center self-stretch
     rounded-t-[12px] bg-[#E6E6E6] shadow-md border-b-2 border-[#DCB57E]
   "
@@ -480,21 +481,21 @@ export default function HeaderAndBackground() {
                 <div
                   className="
     flex flex-col items-start self-stretch
-    px-[10px] pb-[20px] pt-[20px] h-full
+    px-2.5 pb-5 pt-5 h-full
   "
                 >
                   {/* Preview Items */}
-                  <div className="flex flex-col gap-[10px] flex-1 w-full">
+                  <div className="flex flex-col gap-2.5 flex-1 w-full">
                   {recentAnimals.length === 0 ? (
                     <div className="text-sm text-gray-500">No recent animals</div>
                   ) : (
                     recentAnimals.slice(0, 4).map((animal, idx) => (
                       <div
-                        key={animal.animal_id || idx}
+                        key={`${animal.animal_id || "animal"}-${idx}`}
                         className="
-        flex h-[55px] pl-[6px] pr-[10px] py-[4px]
+        flex h-[55px] pl-1.5 pr-2.5 py-1
         justify-between items-center self-stretch
-        rounded-[6px] border-1 border-[#DCB57E] bg-[#F4E8D7]
+        rounded-[6px] border border-[#DCB57E] bg-[#F4E8D7]
         cursor-pointer
       "
                       >
@@ -554,11 +555,11 @@ export default function HeaderAndBackground() {
 
                   {/* View All Button */}
 <Link href="/admin/profiles" className="
-      flex h-[33px] px-[16px] py-[8px]
-      items-start gap-[10px] self-stretch
+      flex h-[33px] px-4 py-2
+      items-start gap-2.5 self-stretch
       rounded-lg bg-[#DCB57E]
       text-xs font-medium
-      hover:bg-[#d4a86b] transition-colors mt-[10px]
+      hover:bg-[#d4a86b] transition-colors mt-2.5
       justify-center
     ">
   <button
@@ -579,7 +580,7 @@ export default function HeaderAndBackground() {
                 <a
                   href="/admin/report"
                   className="
-    flex h-[86px] min-w-[270px] pl-[10px]
+    flex h-[86px] min-w-[270px] pl-2.5
     justify-between items-center self-stretch
     rounded-t-[12px] bg-[#E6E6E6] shadow-md border-b-2 border-[#5E9BBA]
   "
@@ -615,11 +616,11 @@ export default function HeaderAndBackground() {
                 <div
                   className="
     flex flex-col items-start self-stretch
-    px-[10px] pb-[20px] pt-[20px] h-full
+    px-2.5 pb-5 pt-5 h-full
   "
                 >
                   {/* Preview Items */}
-                  <div className="flex flex-col gap-[10px] flex-1 w-full">
+                  <div className="flex flex-col gap-2.5 flex-1 w-full">
                   {recentReports.length === 0 ? (
                     <div className="text-sm text-gray-500">No recent reports</div>
                   ) : (
@@ -802,11 +803,11 @@ export default function HeaderAndBackground() {
                   <button
                     onClick={() => router.push('/admin/report')}
                     className="
-    flex h-[33px] px-[16px] py-[8px]
-    items-center gap-[10px] self-stretch
+    flex h-[33px] px-4 py-2
+    items-center gap-2.5 self-stretch
     rounded-lg bg-[#5E9BBA]
     text-xs font-medium
-    hover:bg-[#4f8aa8] transition-colors mt-[10px]
+    hover:bg-[#4f8aa8] transition-colors mt-2.5
     justify-center
   "
                     style={{
@@ -825,7 +826,7 @@ export default function HeaderAndBackground() {
                 <a
                   href="/admin/volunteer"
                   className="
-    flex h-[86px] min-w-[270px] pl-[10px]
+    flex h-[86px] min-w-[270px] pl-2.5
     justify-between items-center self-stretch
     rounded-t-[12px] bg-[#E6E6E6] shadow-md border-b-2 border-[#C575AD]
   "
@@ -861,10 +862,10 @@ export default function HeaderAndBackground() {
                 <div
                   className="
     flex flex-col items-start self-stretch
-    px-[10px] pb-[20px] pt-[20px] h-full
+    px-2.5 pb-5 pt-5 h-full
   "
                 >
-                  <div className="flex flex-col gap-[10px] flex-1 w-full">
+                  <div className="flex flex-col gap-2.5 flex-1 w-full">
                   {recentVolunteers.length === 0 ? (
                     <div className="text-sm text-gray-500">No recent requests</div>
                   ) : (
@@ -873,9 +874,9 @@ export default function HeaderAndBackground() {
                         key={volunteer.id || idx}
                         onClick={() => router.push('/admin/volunteer')}
                         className="
-        flex h-[55px] pl-[6px] pr-[10px] py-[4px]
+        flex h-[55px] pl-1.5 pr-2.5 py-1
         justify-between items-center self-stretch
-        rounded-[6px] border-1 border-[#C575AD] bg-[#EDD4E6]
+        rounded-[6px] border border-[#C575AD] bg-[#EDD4E6]
         cursor-pointer
       "
                       >
@@ -906,11 +907,11 @@ export default function HeaderAndBackground() {
                   <button
                     onClick={() => router.push('/admin/volunteer')}
                     className="
-    flex h-[33px] px-[16px] py-[8px]
-    items-center gap-[10px] self-stretch
+    flex h-[33px] px-4 py-2
+    items-center gap-2.5 self-stretch
     rounded-lg bg-[#C575AD]
     text-xs font-medium
-    hover:bg-[#b05a9a] transition-colors mt-[10px]
+    hover:bg-[#b05a9a] transition-colors mt-2.5
     justify-center
   "
                     style={{
@@ -923,6 +924,8 @@ export default function HeaderAndBackground() {
                 </div>
               </div>
             </div>
+
+            <AdminAdoptionSection />
           </div>
         </div>
       </div>
