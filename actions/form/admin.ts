@@ -2,6 +2,13 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { notifyAllAdmins, notifyUser } from "@/actions/notifications/internal";
+// SES email util removed — external emails via SES are disabled.
+import {
+	getAdminSmsNumbersFromEnv,
+	sendSmsExternal,
+	publishAdminAnimalReportStatusChangedExternal,
+} from "@/utils/aws/sns";
+// getUserEmailById removed as SES emails are disabled.
 
 // Define the structure of an admin animal report summary
 export interface AdminAnimalReportSummary {
@@ -152,6 +159,34 @@ export async function updateReportStatus(reportId: string, status: 'Accepted' | 
 				} catch (e) {
 					console.error('Failed to notify report submitter (animal_report.status_changed):', e);
 				}
+			}
+
+			// External notifications via AWS SNS (best-effort)
+			try {
+				const titlePart = reportTitle?.trim() ? `: ${reportTitle.trim()}` : "";
+				const reportIdStr = String(reportId);
+
+				// Admin email via SNS topic (admin-only)
+				await publishAdminAnimalReportStatusChangedExternal({
+					reportId: reportIdStr,
+					reportTitle: reportTitle,
+					oldStatus: oldStatus ?? null,
+					newStatus: newStatus ?? null,
+				});
+
+				if (submitterId) {
+					// Previously fetched submitter email for SES; now skipped.
+				}
+
+				const adminSmsNumbers = getAdminSmsNumbersFromEnv();
+				for (const phoneNumber of adminSmsNumbers) {
+					await sendSmsExternal({
+						phoneNumber,
+						message: `Pawject Patrol: Report status changed${titlePart}. ${oldStatus ?? "Unknown"} -> ${newStatus ?? "Unknown"}. ID: ${reportIdStr}`,
+					});
+				}
+			} catch (e) {
+				console.error('Failed to send external email/SMS (animal_report.status_changed):', e);
 			}
 		}
 	} catch (e) {

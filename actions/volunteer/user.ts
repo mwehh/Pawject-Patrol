@@ -4,6 +4,7 @@ import { createClient } from '../../utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { syncVolunteerCallStatus } from './admin';
 import { notifyAllAdmins, notifyUser } from '@/actions/notifications/internal';
+import { publishAdminVolunteerCallJoinedExternal, publishAdminVolunteerCallLeftExternal } from '@/utils/aws/sns';
 
 // Helper to get Supabase client
 async function getSupabase() {
@@ -92,6 +93,17 @@ export async function joinVolunteerCall(callId: string) {
         entity_type: 'volunteer_call',
         entity_id: String(callId),
       });
+
+      // External admin email via AWS SNS topic (best-effort)
+      try {
+        await publishAdminVolunteerCallJoinedExternal({
+          callId: String(callId),
+          callTitle,
+          userDisplayName,
+        });
+      } catch (e) {
+        console.error('Failed to publish external admin email (volunteer_call.joined):', e);
+      }
 
       // Notify the user themselves (best-effort)
       try {
@@ -223,6 +235,17 @@ export async function leaveVolunteerCall(callId: string) {
         entity_type: 'volunteer_call',
         entity_id: String(callId),
       });
+
+      // External admin email via AWS SNS topic (best-effort)
+      try {
+        await publishAdminVolunteerCallLeftExternal({
+          callId: String(callId),
+          callTitle,
+          userDisplayName,
+        });
+      } catch (e) {
+        console.error('Failed to publish external admin email (volunteer_call.left):', e);
+      }
     } catch (e) {
       console.error('Failed to notify admins (volunteer_call.left):', e);
     }

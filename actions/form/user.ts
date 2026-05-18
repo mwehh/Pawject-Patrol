@@ -2,6 +2,11 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { notifyAllAdmins } from "@/actions/notifications/internal";
+import {
+	getAdminSmsNumbersFromEnv,
+	sendSmsExternal,
+	publishAdminAnimalReportSubmittedExternal,
+} from "@/utils/aws/sns";
 
 export interface AnimalReportInsert {
 	report_title?: string;       // text
@@ -107,6 +112,31 @@ export async function createAnimalReport(data: AnimalReportInsert) {
 		}
 	} catch (e) {
 		console.error('Failed to notify admins (animal_report.created):', e);
+	}
+
+	// External notifications via AWS SNS (best-effort)
+	try {
+		const reportId = String(inserted.report_id);
+		const reportTitle = (data.report_title ?? null)?.trim() || null;
+		const titlePart = reportTitle ? `: ${reportTitle}` : "";
+
+		// Admin email via SNS topic (admin-only)
+		await publishAdminAnimalReportSubmittedExternal({
+			reportId,
+			reportTitle,
+		});
+
+		// SES email sending removed; rely on SNS/SMS/internal notifications instead.
+
+		const adminSmsNumbers = getAdminSmsNumbersFromEnv();
+		for (const phoneNumber of adminSmsNumbers) {
+			await sendSmsExternal({
+				phoneNumber,
+				message: `Pawject Patrol: New animal report submitted${titlePart}. Report ID: ${reportId}`,
+			});
+		}
+	} catch (e) {
+		console.error('Failed to send external email/SMS (animal_report.created):', e);
 	}
 
 	// If photo is provided, upload it and update the report
