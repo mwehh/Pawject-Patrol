@@ -40,16 +40,20 @@ function absoluteUrl(path: string): string {
 }
 
 function getSnsClient(): SNSClient | null {
-  const region = process.env.AWS_REGION;
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  // Prefer Amplify-safe per-service vars, then AWS-prefixed vars, then generic.
+  const region =
+    process.env.PAWJECT_AWS_REGION_SNS || process.env.AWS_REGION_SNS || process.env.AWS_REGION;
+  const accessKeyId =
+    process.env.PAWJECT_AWS_ACCESS_KEY_ID_SNS || process.env.AWS_ACCESS_KEY_ID_SNS || process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey =
+    process.env.PAWJECT_AWS_SECRET_ACCESS_KEY_SNS || process.env.AWS_SECRET_ACCESS_KEY_SNS || process.env.AWS_SECRET_ACCESS_KEY;
 
   if (!region) {
     if (!didWarnMissingConfig) {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing AWS_REGION. External notifications are disabled."
+        "[sns] Missing AWS_REGION_SNS or AWS_REGION. External notifications are disabled."
       );
     }
     return null;
@@ -63,7 +67,7 @@ function getSnsClient(): SNSClient | null {
   if (!accessKeyId || !secretAccessKey) {
     // eslint-disable-next-line no-console
     console.info(
-      "[sns] AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY not set; using default AWS credential provider chain."
+      "[sns] AWS_ACCESS_KEY_ID_SNS/AWS_SECRET_ACCESS_KEY_SNS or fallback not set; using default AWS credential provider chain."
     );
     snsClient = new SNSClient({ region });
   } else {
@@ -147,8 +151,8 @@ async function publishExternal({
 function getTopicArn(
   kind: "report_submitted" | "report_status_changed" | "volunteer_updates"
 ): string | null {
-  if (kind === "report_submitted") return process.env.AWS_SNS_TOPIC_REPORT_SUBMITTED_ARN || null;
-  if (kind === "report_status_changed") return process.env.AWS_SNS_TOPIC_REPORT_STATUS_CHANGED_ARN || null;
+  if (kind === "report_submitted") return process.env.SNS_TOPIC_REPORT_SUBMITTED_ARN || null;
+  if (kind === "report_status_changed") return process.env.SNS_TOPIC_REPORT_STATUS_CHANGED_ARN || null;
   return (
     process.env.AWS_SNS_TOPIC_VOLUNTEER_UPDATES_ARN ||
     process.env.AWS_SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN ||
@@ -168,7 +172,7 @@ export async function publishAdminVolunteerCallJoinedExternal(params: {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing volunteer SNS topic ARN. Set AWS_SNS_TOPIC_VOLUNTEER_UPDATES_ARN, AWS_SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN, or AWS_SNS_TOPIC_REPORT_VOLUNTEER_CALL_UPDATES_ARN."
+        "[sns] Missing volunteer SNS topic ARN. Set SNS_TOPIC_VOLUNTEER_UPDATES_ARN, SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN, or SNS_TOPIC_REPORT_VOLUNTEER_CALL_UPDATES_ARN."
       );
     }
     return;
@@ -206,7 +210,7 @@ export async function publishAdminVolunteerCallLeftExternal(params: {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing volunteer SNS topic ARN. Set AWS_SNS_TOPIC_VOLUNTEER_UPDATES_ARN, AWS_SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN, or AWS_SNS_TOPIC_REPORT_VOLUNTEER_CALL_UPDATES_ARN."
+        "[sns] Missing volunteer SNS topic ARN. Set SNS_TOPIC_VOLUNTEER_UPDATES_ARN, SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN, or SNS_TOPIC_REPORT_VOLUNTEER_CALL_UPDATES_ARN."
       );
     }
     return;
@@ -262,7 +266,7 @@ export async function publishAnimalReportSubmittedExternal(params: {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing AWS_SNS_TOPIC_REPORT_SUBMITTED_ARN. External notifications are disabled."
+        "[sns] Missing SNS_TOPIC_REPORT_SUBMITTED_ARN. External notifications are disabled."
       );
     }
     return;
@@ -316,7 +320,7 @@ export async function publishAdminAnimalReportSubmittedExternal(params: {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing AWS_SNS_TOPIC_REPORT_SUBMITTED_ARN. External notifications are disabled."
+        "[sns] Missing SNS_TOPIC_REPORT_SUBMITTED_ARN. External notifications are disabled."
       );
     }
     return;
@@ -354,7 +358,7 @@ export async function publishAnimalReportStatusChangedExternal(params: {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing AWS_SNS_TOPIC_REPORT_STATUS_CHANGED_ARN. External notifications are disabled."
+        "[sns] Missing SNS_TOPIC_REPORT_STATUS_CHANGED_ARN. External notifications are disabled."
       );
     }
     return;
@@ -418,7 +422,7 @@ export async function publishAdminAnimalReportStatusChangedExternal(params: {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing AWS_SNS_TOPIC_REPORT_STATUS_CHANGED_ARN. External notifications are disabled."
+        "[sns] Missing SNS_TOPIC_REPORT_STATUS_CHANGED_ARN. External notifications are disabled."
       );
     }
     return;
