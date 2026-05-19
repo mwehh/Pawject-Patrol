@@ -10,15 +10,11 @@ let client: BedrockRuntimeClient | null = null;
 const bedrockModelId = "us.anthropic.claude-haiku-4-5-20251001-v1:0";
 
 function getBedrockRegion() {
-	// Prefer Amplify-safe per-service region env, then per-service AWS_ var, then generic.
-	const region =
-		process.env.PAWJECT_AWS_REGION_BEDROCK ||
-		process.env.AWS_REGION_BEDROCK ||
-		process.env.AWS_REGION ||
-		process.env.AWS_DEFAULT_REGION;
+	// Use only the Amplify-safe per-service region env.
+	const region = process.env.PAWJECT_AWS_REGION_BEDROCK;
 
 	if (!region) {
-		throw new Error("PAWJECT_AWS_REGION_BEDROCK or AWS_REGION_BEDROCK/AWS_REGION is required for Bedrock");
+		throw new Error("PAWJECT_AWS_REGION_BEDROCK is required for Bedrock");
 	}
 
 	return region;
@@ -28,14 +24,8 @@ function getBedrockClient() {
 	if (!client) {
 		const region = getBedrockRegion();
 
-		const accessKeyId =
-			process.env.PAWJECT_AWS_ACCESS_KEY_ID_BEDROCK ||
-			process.env.AWS_ACCESS_KEY_ID_BEDROCK ||
-			process.env.AWS_ACCESS_KEY_ID;
-		const secretAccessKey =
-			process.env.PAWJECT_AWS_SECRET_ACCESS_KEY_BEDROCK ||
-			process.env.AWS_SECRET_ACCESS_KEY_BEDROCK ||
-			process.env.AWS_SECRET_ACCESS_KEY;
+		const accessKeyId = process.env.PAWJECT_AWS_ACCESS_KEY_ID_BEDROCK;
+		const secretAccessKey = process.env.PAWJECT_AWS_SECRET_ACCESS_KEY_BEDROCK;
 
 		const opts: any = { region };
 		if (accessKeyId && secretAccessKey) {

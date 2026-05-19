@@ -40,20 +40,17 @@ function absoluteUrl(path: string): string {
 }
 
 function getSnsClient(): SNSClient | null {
-  // Prefer Amplify-safe per-service vars, then AWS-prefixed vars, then generic.
-  const region =
-    process.env.PAWJECT_AWS_REGION_SNS || process.env.AWS_REGION_SNS || process.env.AWS_REGION;
-  const accessKeyId =
-    process.env.PAWJECT_AWS_ACCESS_KEY_ID_SNS || process.env.AWS_ACCESS_KEY_ID_SNS || process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey =
-    process.env.PAWJECT_AWS_SECRET_ACCESS_KEY_SNS || process.env.AWS_SECRET_ACCESS_KEY_SNS || process.env.AWS_SECRET_ACCESS_KEY;
+  // Use only the Amplify-safe per-service env vars for SNS.
+  const region = process.env.PAWJECT_AWS_REGION_SNS;
+  const accessKeyId = process.env.PAWJECT_AWS_ACCESS_KEY_ID_SNS;
+  const secretAccessKey = process.env.PAWJECT_AWS_SECRET_ACCESS_KEY_SNS;
 
   if (!region) {
     if (!didWarnMissingConfig) {
       didWarnMissingConfig = true;
       // eslint-disable-next-line no-console
       console.warn(
-        "[sns] Missing AWS_REGION_SNS or AWS_REGION. External notifications are disabled."
+        "[sns] Missing PAWJECT_AWS_REGION_SNS. External notifications are disabled."
       );
     }
     return null;
@@ -66,8 +63,8 @@ function getSnsClient(): SNSClient | null {
   // (e.g. ~/.aws/credentials from `aws configure`, ECS/EC2 role, etc.).
   if (!accessKeyId || !secretAccessKey) {
     // eslint-disable-next-line no-console
-    console.info(
-      "[sns] AWS_ACCESS_KEY_ID_SNS/AWS_SECRET_ACCESS_KEY_SNS or fallback not set; using default AWS credential provider chain."
+    console.warn(
+      "[sns] PAWJECT AWS SNS credentials not set; external notifications will use the default AWS credential provider chain if available."
     );
     snsClient = new SNSClient({ region });
   } else {
