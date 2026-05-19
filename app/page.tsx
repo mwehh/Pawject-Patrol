@@ -85,7 +85,7 @@ export default function Home() {
   // Return loading state
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#E1E69D] flex items-center justify-center">
+      <main className="min-h-dvh bg-[#E1E69D] flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
       </main>
     );
@@ -97,7 +97,7 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen bg-[#E1E69D] flex flex-col items-center overflow-hidden">
+    <main className="relative min-h-vh bg-[#E1E69D] flex flex-col items-center overflow-hidden">
       {/* Sidebar */}
       <Sidebar 
         sidebarOpen={sidebarOpen} 
@@ -109,7 +109,7 @@ export default function Home() {
       />
 
       {/* --- Hero Container--- */}
-      <div className="relative w-full flex flex-col items-center overflow-hidden">
+      <div className="relative w-full min-h-dvh flex flex-col items-center overflow-hidden">
         {/* Ellipse Background */}
         <div className="relative w-full flex justify-center z-0">
           {/* Mobile SVG */}
@@ -143,7 +143,7 @@ export default function Home() {
             fill="none"
             preserveAspectRatio="none"
             // Changed md:block to lg:block
-            className="absolute hidden lg:block w-full h-auto top-[-20vh]"
+            className="absolute hidden lg:block w-full h-auto top-[1vh]"
           >
             <path
               d="M1624 187C1624 298.562 1176.24 389 623.898 389C71.5543 389 -376.209 298.562 -376.209 187C-376.209 75.4385 71.5543 -15 623.898 -15C1176.24 -15 1624 75.4385 1624 187Z"
@@ -153,7 +153,7 @@ export default function Home() {
         </div>
 
         {/* Header  */}
-        <header className="flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10">
+        <header className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-50">
           <div className="w-full max-w-[1200px] mx-auto flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -176,105 +176,107 @@ export default function Home() {
           </div>
         </header>
 
-        {/* --- Main Card --- */}
-        <div
-          className="
-            relative 
-            w-[90%] 
-            max-w-3xl lg:max-w-6xl
-            bg-[#E6E6E6] 
-            rounded-3xl 
-            mt-6 
-            shadow-lg 
-            flex 
-            flex-col 
-            justify-between 
-            items-center 
-            px-4 
-            pt-6 pb-8 lg:pt-8 lg:pb-12 
-            z-10
-            transition-all
-          "
-        >
-          {/* YFA Logo */}
-          <div>
-            <Image
-              src="/YFALogo.png"
-              alt="Youth For Animals Logo"
-              width={92}
-              height={77}
-              className="mx-auto"
-            />
-          </div>
-
-          {/* Moodboard / Main Logo */}
-          <div className="mb-4 w-full flex justify-center">
-            <Image
-              src="/Moodboard2.png"
-              alt="Pawject Patrol large logo"
-              width={321}
-              height={165}
-              className="mx-auto object-contain -mt-2 scale-[1.8] sm:scale-[1.3] md:scale-[1.5]"
-              priority
-            />
-          </div>
-
-        {/* Login Button */}
-          <Button
-            asChild
-            className="relative z-10 w-[155px] sm:w-[165px] md:w-[175px] h-[35px] sm:h-[38px] md:h-[40px] bg-[#8D52A7] hover:bg-[#7B4692] text-white font-bold text-sm sm:text-base rounded-lg transition-all lg:-mb-2"
+        {/* Flex Wrapper for Vertically Centering Content */}
+        <div className="flex-1 w-full flex flex-col items-center justify-center relative z-10 pt-[52px] pb-10">
+          {/* --- Main Card --- */}
+          <div
+            className="
+              relative 
+              w-[90%] 
+              max-w-3xl lg:max-w-6xl
+              bg-[#E6E6E6] 
+              rounded-3xl 
+              shadow-lg 
+              flex 
+              flex-col 
+              justify-between 
+              items-center 
+              px-4 
+              pt-6 pb-8 lg:pt-8 lg:pb-12 
+              z-10
+              transition-all
+            "
           >
-            <Link href="/login">Login</Link>
-          </Button>
-          {/* View Catalog Button */}
-          <div className="absolute bottom-[-20px] sm:bottom-[-24px] md:bottom-[-20px] flex justify-center">
-            <Button className="flex w-[155px] sm:w-[165px] md:w-[175px] h-[35px] sm:h-[38px] md:h-[40px] px-4 py-2 items-start gap-[10px] bg-[#8D52A7] hover:bg-[#7B4692] text-white font-bold text-sm sm:text-base rounded-lg shadow-lg transition-all">
-              <Link href="/catalog">View Catalog</Link>
-            </Button>
-          </div>
-        </div>
+            {/* YFA Logo */}
+            <div>
+              <Image
+                src="/YFALogo.png"
+                alt="Youth For Animals Logo"
+                width={92}
+                height={77}
+                className="mx-auto"
+              />
+            </div>
 
-        {/* --- Navigation Section --- */}
-        <div className="px-0 pb-0 mt-16 w-full flex justify-center z-10">
-          <div className="w-[90%] max-w-6xl bg-[#E6E6E6] rounded-2xl shadow-md p-4 sm:p-5 transition-all">
-            <div className="grid grid-cols-2 gap-y-4 gap-x-4 sm:gap-y-6 md:grid-cols-4 md:gap-x-6">
-              {[
-                { label: "Home", icon: "/PawPrint.png", target: "top" },
-                { label: "About Us", icon: "/PawPrint.png", target: "about-us" },
-                { label: "Mission", icon: "/PawPrint.png", target: "mission" },
-                { label: "Vision", icon: "/PawPrint.png", target: "vision" },
-                { label: "Goals", icon: "/PawPrint.png", target: "goals" },
-              ].filter((item, idx) => idx < 4).map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className="flex flex-col items-center justify-center text-center focus:outline-none"
-                  onClick={() => {
-                    if (typeof window !== "undefined" && item.target === "top") {
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    } else {
-                      const el = document.getElementById(item.target);
-                      if (el) {
-                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+            {/* Moodboard / Main Logo */}
+            <div className="mb-4 w-full flex justify-center">
+              <Image
+                src="/Moodboard2.png"
+                alt="Pawject Patrol large logo"
+                width={321}
+                height={165}
+                className="mx-auto object-contain -mt-2 scale-[1.8] sm:scale-[1.3] md:scale-[1.5]"
+                priority
+              />
+            </div>
+
+          {/* Login Button */}
+            <Button
+              asChild
+              className="relative z-10 w-[155px] sm:w-[165px] md:w-[175px] h-[35px] sm:h-[38px] md:h-[40px] bg-[#8D52A7] hover:bg-[#7B4692] text-white font-bold text-sm sm:text-base rounded-lg transition-all lg:-mb-2"
+            >
+              <Link href="/login">Login</Link>
+            </Button>
+            {/* View Catalog Button */}
+            <div className="absolute bottom-[-20px] sm:bottom-[-24px] md:bottom-[-20px] flex justify-center">
+              <Button className="flex w-[155px] sm:w-[165px] md:w-[175px] h-[35px] sm:h-[38px] md:h-[40px] px-4 py-2 items-start gap-[10px] bg-[#8D52A7] hover:bg-[#7B4692] text-white font-bold text-sm sm:text-base rounded-lg shadow-lg transition-all">
+                <Link href="/catalog">View Catalog</Link>
+              </Button>
+            </div>
+          </div>
+
+          {/* --- Navigation Section --- */}
+          <div className="px-0 pb-0 mt-16 w-full flex justify-center z-10">
+            <div className="w-[90%] max-w-6xl bg-[#E6E6E6] rounded-2xl shadow-md p-4 sm:p-5 transition-all">
+              <div className="grid grid-cols-2 gap-y-4 gap-x-4 sm:gap-y-6 md:grid-cols-4 md:gap-x-6">
+                {[
+                  { label: "Home", icon: "/PawPrint.png", target: "top" },
+                  { label: "About Us", icon: "/PawPrint.png", target: "about-us" },
+                  { label: "Mission", icon: "/PawPrint.png", target: "mission" },
+                  { label: "Vision", icon: "/PawPrint.png", target: "vision" },
+                  { label: "Goals", icon: "/PawPrint.png", target: "goals" },
+                ].filter((item, idx) => idx < 4).map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="flex flex-col items-center justify-center text-center focus:outline-none"
+                    onClick={() => {
+                      if (typeof window !== "undefined" && item.target === "top") {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      } else {
+                        const el = document.getElementById(item.target);
+                        if (el) {
+                          el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }
                       }
-                    }
-                  }}
-                  aria-label={item.label}
-                >
-                  <div className="w-10 h-6 flex items-center justify-center">
-                    <Image
-                      src={item.icon}
-                      alt={`${item.label} Icon`}
-                      width={24}
-                      height={24}
-                      className="object-contain"
-                    />
-                  </div>
-                  <span className="font-semibold text-gray-800 text-sm sm:text-base mt-1">
-                    {item.label}
-                  </span>
-                </button>
-              ))}
+                    }}
+                    aria-label={item.label}
+                  >
+                    <div className="w-10 h-6 flex items-center justify-center">
+                      <Image
+                        src={item.icon}
+                        alt={`${item.label} Icon`}
+                        width={24}
+                        height={24}
+                        className="object-contain"
+                      />
+                    </div>
+                    <span className="font-semibold text-gray-800 text-sm sm:text-base mt-1">
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -346,7 +348,7 @@ export default function Home() {
             <p
               className="text-sm sm:text-base leading-relaxed mt-2"
               style={{
-                fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
               }}
             >
               Foster kindness, compassion, and respect for all animal life.
@@ -395,7 +397,7 @@ export default function Home() {
               <p
                 className="text-sm sm:text-base leading-relaxed mt-2"
                 style={{
-                  fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                  fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
                 }}
               >
                 Foster kindness, compassion, and respect for all animal life.
@@ -444,7 +446,7 @@ export default function Home() {
               <p
                 className="text-sm sm:text-base leading-relaxed mt-2"
                 style={{
-                  fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                  fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
                 }}
               >
                 A compassionate and informed community committed to fostering
@@ -512,7 +514,7 @@ export default function Home() {
                   borderRadius: "16px",
                   opacity: "0.95",
                   background: "rgba(230, 230, 230, 0.10)",
-                  fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                  fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
                 }}
               >
                 YFA-UPMin, in collaboration with the university, will actively
@@ -526,7 +528,7 @@ export default function Home() {
                   borderRadius: "16px",
                   opacity: "0.95",
                   background: "rgba(230, 230, 230, 0.10)",
-                  fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                  fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
                 }}
               >
                 YFA-UPMin will actively engage university students in these
@@ -582,7 +584,7 @@ export default function Home() {
             <p
               className="text-sm sm:text-base leading-relaxed mb-4 max-w-sm"
               style={{
-                fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
               }}
             >
               Youth for Animals - UP Mindanao is dedicated to fostering
@@ -623,7 +625,7 @@ export default function Home() {
             <ul
               className="space-y-1 text-sm"
               style={{
-                fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
               }}
             >
               <li>
@@ -679,7 +681,7 @@ export default function Home() {
             <ul
               className="space-y-2 text-sm"
               style={{
-                fontFamily: 'Help_Loyola Round, "Kawaii RT", sans-serif',
+                fontFamily: '"Genty Sans", "Help_Loyola Round", "Kawaii RT", sans-serif',
               }}
             >
               <li className="flex items-center gap-2">

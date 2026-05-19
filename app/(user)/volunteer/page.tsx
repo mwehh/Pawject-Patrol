@@ -6,11 +6,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, LogIn, X, Facebook, Instagram, Twitter, Mail, Calendar, Clock, MapPin, User, Search } from "lucide-react";
-import {  } from "@/actions/volunteer/user";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import UserNotificationsBell from "@/components/UserNotificationsBell";
 import { Suspense } from "react";
+import { joinVolunteerCall, leaveVolunteerCall, getUserResponseStatus, getVolunteerSignupCount } from '@/actions/volunteer/user';
+import { listVolunteerCalls } from '@/actions/volunteer/admin';
 
 // Define Volunteer type
 type Volunteer = {
@@ -69,10 +70,7 @@ function formatTime(value?: string | null) {
   }
 }
 
-
-import { joinVolunteerCall, leaveVolunteerCall, getUserResponseStatus } from '@/actions/volunteer/user';
-import { listVolunteerCalls } from '@/actions/volunteer/admin';
-
+console.log("UserVolunteerPage mounted");
 function UserVolunteerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -122,17 +120,28 @@ function UserVolunteerPage() {
       const defaultAsc = column === 'call_title' || column === 'call_starttime';
       const sortOrder = defaultAsc ? 'asc' : 'desc';
 
+      // Fetch volunteer calls
       const data = await listVolunteerCalls({
         search: search || undefined,
         sortBy: column,
         sortOrder: sortOrder,
         limit: 200
       });
-      setItems(data as Volunteer[]);
+
+
+      // For each call, fetch joined_count using backend function
+      const withCounts = await Promise.all(
+        (data as Volunteer[]).map(async (call) => {
+          if (!call.call_id) return { ...call, joined_count: 0 };
+          const count = await getVolunteerSignupCount(call.call_id);
+          return { ...call, joined_count: count || 0 };
+        })
+      );
+      setItems(withCounts);
 
       // Fetch user response status for each call
       const statuses: { [key: string]: string | null } = {};
-      for (const call of data as Volunteer[]) {
+      for (const call of withCounts) {
         if (call.call_id) {
           statuses[call.call_id] = await getUserResponseStatus(call.call_id);
         }

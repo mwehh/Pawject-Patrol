@@ -101,9 +101,11 @@ export default function AdminVolunteerDetailPage(props: any) {
       const resolvedParams: any = await props.params;
       const id = resolvedParams?.id;
       if (!id) return;
+      // Always use getVolunteerResponses (service client) for admin
       const v = await getVolunteerCall(id);
       setVolunteer(v);
-      setResponses(await getVolunteerResponses(id));
+      const responses = await getVolunteerResponses(id);
+      setResponses(responses);
       setLoading(false);
     })();
   }, [props.params]);
@@ -179,7 +181,7 @@ export default function AdminVolunteerDetailPage(props: any) {
               <button
                 onClick={handleLogout}
                 className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-                aria-label="Sign out"
+                aria-label="Logout"
                 type="button"
               >
                 <LogIn className="w-6 h-6 text-gray-800" />
@@ -351,7 +353,7 @@ export default function AdminVolunteerDetailPage(props: any) {
                       {responses.length > 0 ? (
                         <div className="space-y-2 w-full">
                           {responses.map((response: any) => {
-                            const userName = response.user?.name || response.user?.email || 'Unknown User';
+                            const userName = response.name || response.email || 'Unknown User';
                             const firstLetter = userName[0]?.toUpperCase() || 'U';
                             return (
                               <div 
@@ -372,9 +374,9 @@ export default function AdminVolunteerDetailPage(props: any) {
                                     <div className="font-medium" style={{ color: '#3C3333', fontFamily: 'Genty Sans, sans-serif' }}>
                                       {userName}
                                     </div>
-                                    {response.user?.email && response.user.email !== userName && (
+                                    {response.email && response.email !== userName && (
                                       <div className="text-xs mt-0.5" style={{ color: '#6B7280', fontFamily: 'Genty Sans, sans-serif' }}>
-                                        {response.user.email}
+                                        {response.email}
                                       </div>
                                     )}
                                   </div>

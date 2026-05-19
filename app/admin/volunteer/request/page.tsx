@@ -273,7 +273,7 @@ function RequestPage() {
             <button
               onClick={handleLogout}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-              aria-label="Sign out"
+              aria-label="Logout"
               type="button"
             >
               <LogIn className="w-6 h-6 text-gray-800" />

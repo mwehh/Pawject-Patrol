@@ -172,7 +172,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, userName, userEma
 								padding: "12px",
 							}}
 						>
-							{[{
+							{[
+								{
 								label: "Home",
 								icon: (
 									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -291,7 +292,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, userName, userEma
 									setSidebarOpen(false);
 									router.push(variant === "admin" ? "/admin/notifications" : "/notifications");
 								},
-							}].map((item) => (
+							},
+							{
+								label: "Pawfect Match",
+								icon: (
+									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+										<path d="M17 10C17.7005 9.2995 18.6908 10 19.5 10C20.8807 10 22 8.88071 22 7.5C22 6.11929 20.8807 5 19.5 5C19.2239 5 19 4.77614 19 4.5C19 3.11929 17.8807 2 16.5 2C15.1193 2 14 3.11929 14 4.5C14 5.30922 14.7005 6.2995 14 7L7 14C6.2995 14.7005 5.30922 14 4.5 14C3.11929 14 2 15.1193 2 16.5C2 17.8807 3.11929 19 4.5 19C4.77614 19 5 19.2239 5 19.5C5 20.8807 6.11929 22 7.5 22C8.88071 22 10 20.8807 10 19.5C10 18.6908 9.2995 17.7005 10 17L17 10Z" stroke="#B88A44" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+									</svg>
+								),
+								onClick: () => {
+									setSidebarOpen(false);
+									router.push("/catalog?pawfectmatch=true");
+								},
+							},
+							].map((item) => (
 								<button
 									key={item.label}
 									onClick={item.onClick ? item.onClick : () => {

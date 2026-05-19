@@ -15,7 +15,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
-import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Admin dashboard page component - displays stats and navigation cards
 export default function HeaderAndBackground() {
@@ -32,12 +31,14 @@ export default function HeaderAndBackground() {
   const [totalAnimals, setTotalAnimals] = useState(0);
   const [animalReports, setAnimalReports] = useState(0);
   const [volunteerRequests, setVolunteerRequests] = useState(0);
+  const [adoptionRequestsCount, setAdoptionRequestsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // Recent items (for dashboard previews)
   const [recentAnimals, setRecentAnimals] = useState<any[]>([]);
   const [recentReports, setRecentReports] = useState<any[]>([]);
   const [recentVolunteers, setRecentVolunteers] = useState<any[]>([]);
+  const [recentAdoptions, setRecentAdoptions] = useState<any[]>([]);
 
   // State for user info
   const [userName, setUserName] = useState<string>("");
@@ -187,6 +188,12 @@ export default function HeaderAndBackground() {
         .select("*", { count: "exact", head: true })
         .in("call_status", ["Active", "Filled", "Ongoing"]);
 
+      // Count adoptions
+      const { count: adoptionCount } = await supabase
+        .from("adoption_application")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+
       // Fetch recent entries for quick preview (latest 3)
       const { data: recentAnimalsData } = await supabase
         .from("animal")
@@ -207,16 +214,15 @@ export default function HeaderAndBackground() {
         .order("created_at", { ascending: false })
         .limit(4);
 
-
       // Update state with fetched counts and recent items if component still mounted
       if (mounted) {
         setTotalAnimals(animalsCount || 0);
         setAnimalReports(reportsCount || 0);
         setVolunteerRequests(callCount || 0);
+        setAdoptionRequestsCount(adoptionCount || 0);
         setRecentAnimals(recentAnimalsData || []);
         setRecentReports(recentReportsData || []);
         setRecentVolunteers(recentVolunteersData || []);
-
         setLoading(false);
       }
     };
@@ -286,640 +292,297 @@ export default function HeaderAndBackground() {
                 alt="Pawject Patrol Logo"
                 width={77}
                 height={36}
-                className="flex-shrink-0"
+                className="shrink-0"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Notification Icon */}
-              <AdminNotificationsBell />
-
-              {/* Logout Button (Desktop only with text, mobile uses just icon) */}
-              <button
-                onClick={handleLogout}
-                className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
-                style={{ fontFamily: '"Genty Sans", sans-serif' }}
-              >
-                <span>Logout</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
-              </button>
-              {/* Mobile Logout Icon */}
-              <button
-                onClick={handleLogout}
-                className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                <LogIn className="w-6 h-6 text-gray-800" />
-              </button>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <LogIn className="w-6 h-6 text-gray-800" />
+            </button>
           </div>
         </header>
 
         <div className="max-w-6xl mx-auto px-4 py-6 w-full">
           {/* Wrapper Container */}
-          <div className="bg-[#E1E69D] rounded-2xl p-2 md:p-5 lg:p-8 pl-[24px] pr-[24px]">
-            <div className="flex flex-col lg:flex-row gap-10 items-start lg:items-center justify-between">
-              {/* Welcome Message */}
-              <div className="flex-1 flex flex-col gap-4">
-                <p
-                  className="text-[10px] sm:text-xs md:text-xs"
-                  style={{
-                    color: "#3C3333",
-                    fontFamily: '"Genty Sans", sans-serif',
-                  }}
-                >
-                  Welcome back Admin!
-                </p>
+                    {/* Wrapper Container */}
+          <div className="bg-[#E1E69D] rounded-2xl md:p-5 lg:p-8 flex flex-col gap-6">
+            
+            {/* Welcome Message */}
+            <div className="flex flex-col gap-4">
+              <p
+                className="text-xs md:text-sm text-[#3C3333]"
+                style={{ fontFamily: '"Genty Sans", sans-serif' }}
+              >
+                Welcome back Admin!
+              </p>
 
-                <h1
-                  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl"
-                  style={{
-                    color: "#E6E6E6",
-                    WebkitTextStrokeWidth: ".5px",
-                    WebkitTextStrokeColor: "#000",
-                    fontFamily: '"Kawaii RT", sans-serif',
-                    fontStyle: "normal",
-                    fontWeight: 400,
-                    lineHeight: "normal",
-                    outlineColor: "#3C3333",
-                  }}
-                >
-                  Pawject Patrol Admin Dashboard
-                </h1>
+              <h1
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#E6E6E6]"
+                style={{
+                  WebkitTextStrokeWidth: ".5px",
+                  WebkitTextStrokeColor: "#000",
+                  fontFamily: '"Kawaii RT", sans-serif',
+                }}
+              >
+                Pawject Patrol<br className="hidden md:block"/>Admin Dashboard
+              </h1>
 
-                <p
-                  className="text-[12px] sm:text-[12px] md:text-[14px]"
-                  style={{
-                    color: "#3C3333",
-                    fontFamily: '"Genty Sans", sans-serif',
-                  }}
-                >
-                  Manage your animal patrol operations, track reports,
-                  coordinate volunteers, and monitor all activities in
-                  real-time.
-                </p>
-
-                {/* --- Dashboard Statistics --- */}
-                <section
-                  className="flex gap-4 lg:flex-row lg:flex-wrap mt-4"
-                  style={{ fontFamily: '"Genty Sans", sans-serif' }}
-                >
-                  {/* Total Animals */}
-                  <div
-                    className="
-        flex flex-col justify-center items-center text-center
-        h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
-        p-[10px] gap-[4px]
-        rounded-[16px] bg-[#DCB57E]
-      "
-                  >
-                    <span className="text-xl md:text-2xl lg:text-2xl font-medium text-[#E6E6E6]">
-                      {loading ? "..." : totalAnimals}
-                    </span>
-                    <span className="text-sm md:text-lg lg:text-lg text-[#E6E6E6]">
-                      Total Animals
-                    </span>
-                  </div>
-
-                  {/* Animal Reports */}
-                  <div
-                    className="
-        flex flex-col justify-center items-center text-center
-        h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
-        p-[10px] gap-[4px]
-        rounded-[16px] bg-[#5E9BBA]
-      "
-                  >
-                    <span className="text-xl md:text-xl lg:text-2xl font-medium text-[#E6E6E6]">
-                      {loading ? "..." : animalReports}
-                    </span>
-                    <span className="text-sm md:text-lg lg:text-lg text-[#E6E6E6]">
-                      Animal Reports
-                    </span>
-                  </div>
-
-                  {/* Volunteer Requests */}
-                  <div
-                    className="
-        flex flex-col justify-center items-center text-center
-        h-[108px] flex-1 md:flex-[1_0_calc(33.333%-11px)]
-        p-[10px] gap-[4px]
-        rounded-[16px] bg-[#C575AD]
-      "
-                  >
-                    <span className="text-xl md:text-2xl lg:text-2xl font-medium text-[#E6E6E6]">
-                      {loading ? "..." : volunteerRequests}
-                    </span>
-                    <span className="text-sm md:text-lg lg:text-lg text-[#E6E6E6]">
-                      Volunteer Tasks
-                    </span>
-                  </div>
-                </section>
-              </div>
-
-              {/* Dog Image */}
-              <div className="w-full lg:w-auto lg:flex-shrink-0">
-                <img
-                  src="/dog_admin.jpg"
-                  alt="Dog"
-                  className="w-full md:h-[290px] lg:w-[520px] lg:h-[340px] rounded-[12px] object-cover"
-                />
-              </div>
+              <p
+                className="text-sm md:text-base text-[#3C3333] max-w-3xl leading-relaxed"
+                style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600 }}
+              >
+                Manage your animal patrol operations, track reports,
+                coordinate volunteers, and monitor all activities in
+                real-time.
+              </p>
             </div>
+
+            {/* --- Dashboard Statistics 4 boxes --- */}
+            <section
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2"
+              style={{ fontFamily: '"Genty Sans", sans-serif' }}
+            >
+              {/* Total Animals */}
+              <div
+                className="flex flex-col justify-center items-center text-center h-[108px] rounded-[16px] bg-[#DCB57E] shadow-sm"
+              >
+                <span className="text-3xl lg:text-4xl font-semibold text-[#f8f9fa]">
+                  {loading ? "..." : totalAnimals}
+                </span>
+                <span className="text-sm md:text-base font-semibold text-[#f8f9fa] mt-1">
+                  Total Animals
+                </span>
+              </div>
+              {/* Animal Reports */}
+              <div
+                className="flex flex-col justify-center items-center text-center h-[108px] rounded-[16px] bg-[#5E9BBA] shadow-sm"
+              >
+                <span className="text-3xl lg:text-4xl font-semibold text-[#f8f9fa]">
+                  {loading ? "..." : animalReports}
+                </span>
+                <span className="text-sm md:text-base font-semibold text-[#f8f9fa] mt-1">
+                  Animal Reports
+                </span>
+              </div>
+              {/* Volunteer Tasks */}
+              <div
+                className="flex flex-col justify-center items-center text-center h-[108px] rounded-[16px] bg-[#C575AD] shadow-sm"
+              >
+                <span className="text-3xl lg:text-4xl font-semibold text-[#f8f9fa]">
+                  {loading ? "..." : volunteerRequests}
+                </span>
+                <span className="text-sm md:text-base font-semibold text-[#f8f9fa] mt-1">
+                  Volunteer Tasks
+                </span>
+              </div>
+              {/* Adoption Requests */}
+              <div
+                className="flex flex-col justify-center items-center text-center h-[108px] rounded-[16px] bg-[#689668] shadow-sm"
+              >
+                <span className="text-3xl lg:text-4xl font-semibold text-[#f8f9fa]">
+                  {loading ? "..." : adoptionRequestsCount}
+                </span>
+                <span className="text-sm md:text-base font-semibold text-[#f8f9fa] mt-1">
+                  Adoption Requests
+                </span>
+              </div>
+            </section>
+
           </div>
         </div>
 
-        {/* --- Dashboard Cards --- */}
-        <div className="w-full flex-1 bg-[#E6E6E6]">
-          <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col gap-6">
-            <div className=" md:pr-10 md:pl-10 flex flex-col lg:flex-row flex-wrap gap-6 justify-center">
-              {/* Animal Profiles Card */}
-              <div className="w-full lg:w-[calc(33.333%-16px)] bg-[#FFFFFF] rounded-2xl shadow-lg overflow-hidden border-2 border-[#DCB57E] flex flex-col">
+        {/* --- Segmented Pills and Cards --- */}
+        <div className="w-full flex-1 bg-transparent">
+          <div className="max-w-6xl mx-auto px-4 pb-12 flex flex-col gap-6">
+            
+            {/* Nav Pills Scrollable */}
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar items-center">
+              <button className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#3C3333] text-[#f8f9fa] text-xs md:text-sm font-bold shadow-sm" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                Overview
+              </button>
+              <button onClick={()=>router.push('/admin/profiles')} className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#DCB57E]/80 hover:bg-[#DCB57E] text-[#f4f4f4] text-xs md:text-sm font-bold shadow-sm transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                Animal Profiles
+              </button>
+              <button onClick={()=>router.push('/admin/report')} className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#5E9BBA]/80 hover:bg-[#5E9BBA] text-[#f4f4f4] text-xs md:text-sm font-bold shadow-sm transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                Animal Reports
+              </button>
+              <button onClick={()=>router.push('/admin/volunteer')} className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#C575AD]/80 hover:bg-[#C575AD] text-[#f4f4f4] text-xs md:text-sm font-bold shadow-sm transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                Volunteer Tasks
+              </button>
+              <button onClick={()=>router.push('/admin/adoption')} className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#689668]/80 hover:bg-[#689668] text-[#f4f4f4] text-xs md:text-sm font-bold shadow-sm transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                Adoption Requests
+              </button>
+            </div>
+
+                        {/* Grid 2x2 of Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full z-10">
+              
+              {/* CARD 1: Animal Profiles */}
+              <div className="bg-[#DCB57E] rounded-[24px] overflow-hidden shadow-md flex flex-col h-[400px]">
                 {/* Header */}
-                <a
-                  href="/admin/profiles"
-                  className="
-    flex h-[86px] min-w-[270px] pl-[10px]
-    justify-between items-center self-stretch
-    rounded-t-[12px] bg-[#E6E6E6] shadow-md border-b-2 border-[#DCB57E]
-  "
-                >
-                  <div className="flex-1 px-1">
-                    <h2
-                      className="text-lg lg:text-lg font-medium mb-0.5"
-                      style={{
-                        color: "#DCB57E",
-                        fontFamily: '"Genty Sans", sans-serif',
-                      }}
-                    >
-                      Animal Profiles
-                    </h2>
-                    <p
-                      className="text-[10px] md:text-xs lg:text-xs text-[#3C3333]"
-                      style={{ fontFamily: '"Genty Sans", sans-serif' }}
-                    >
-                      View and Manage Animal Database
-                    </p>
+                <div className="px-5 py-4 flex gap-4 items-center">
+                  <img src="/paws/paws1.png" className="w-[45px] h-[45px] opacity-100" style={{ filter: 'brightness(0) invert(1)' }}/>
+                  <div>
+                    <h3 className="text-white text-2xl font-normal tracking-wide" style={{fontFamily: '"Genty Sans", sans-serif'}}>Animal Profiles</h3>
+                    <p className="text-[#4D3F2C] text-[12px] font-bold mt-0.5">View and Manage Animal Database</p>
                   </div>
-
-                  <div className="w-24 lg:w-32 flex items-center justify-center bg-[#DCB57E] h-full rounded-tr-[12px]">
-                    <img
-                      src="/paws/paws1.png"
-                      alt="Animal Profiles"
-                      className="w-10 h-10 lg:w-12 lg:h-12"
-                    />
-                  </div>
-                </a>
-
-                {/* Preview and Button Container */}
-                <div
-                  className="
-    flex flex-col items-start self-stretch
-    px-[10px] pb-[20px] pt-[20px] h-full
-  "
-                >
-                  {/* Preview Items */}
-                  <div className="flex flex-col gap-[10px] flex-1 w-full">
-                  {recentAnimals.length === 0 ? (
-                    <div className="text-sm text-gray-500">No recent animals</div>
-                  ) : (
-                    recentAnimals.slice(0, 4).map((animal, idx) => (
-                      <div
-                        key={animal.animal_id || idx}
-                        className="
-        flex h-[55px] pl-[6px] pr-[10px] py-[4px]
-        justify-between items-center self-stretch
-        rounded-[6px] border-1 border-[#DCB57E] bg-[#F4E8D7]
-        cursor-pointer
-      "
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-300 rounded-lg overflow-hidden">
-                            {animal.animal_photo ? (
-                              <img
-                                src={animal.animal_photo}
-                                alt={animal.animal_name || 'Animal'}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                                No photo
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p
-                              className="font-medium text-xs text-[#4D3F2C]"
-                              style={{ fontFamily: '"Genty Sans", sans-serif' }}
-                            >
-                              {animal.animal_name || 'Unnamed'}
-                            </p>
-                            <p className="text-[10px] text-[#846D4C]">
-                              {animal.animal_breed || animal.animal_species || 'Unknown'}
-                            </p>
-                          </div>
+                </div>
+                {/* Content */}
+                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                  <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
+                    {recentAnimals.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent animals</div> : recentAnimals.slice(0, 3).map((a,i)=>(
+                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/profiles/${a.animal_id}`)}>
+                        <div className="w-[60px] h-[60px] rounded-[14px] overflow-hidden shrink-0 bg-gray-200 shadow-sm">
+                          {a.animal_photo ? <img src={a.animal_photo} className="w-full h-full object-cover"/> : null}
                         </div>
-
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <path
-                            d="M5 12H19"
-                            stroke="#3C3333"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M12 5L19 12L12 19"
-                            stroke="#3C3333"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
+                        <div className="flex-1 overflow-hidden">
+                          <p className="font-bold text-[#3C3333] text-[16px] leading-tight" style={{fontFamily: '"Genty Sans", sans-serif'}}>{a.animal_name || 'Unnamed'}</p>
+                          <p className="text-[12px] text-[#A69999] font-bold mt-1 leading-none">{a.animal_breed || a.animal_species || 'Unknown'}</p>
+                          <p className="text-[12px] text-[#A69999] font-bold mt-1 leading-none">Added: {new Date(a.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3C3333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
                         </svg>
                       </div>
-                    ))
-                  )}
+                    ))}
                   </div>
-
-                  {/* View All Button */}
-<Link href="/admin/profiles" className="
-      flex h-[33px] px-[16px] py-[8px]
-      items-start gap-[10px] self-stretch
-      rounded-lg bg-[#DCB57E]
-      text-xs font-medium
-      hover:bg-[#d4a86b] transition-colors mt-[10px]
-      justify-center
-    ">
-  <button
-    style={{
-      fontFamily: '"Genty Sans", sans-serif',
-      color: "#FFF",
-    }}
-  >
-    View All Animals
-  </button>
-</Link>
+                </div>
+                {/* View All */}
+                <div className="flex flex-col justify-center items-center py-[15px] px-[24px] gap-[10px] w-full mt-auto">
+                  <button onClick={()=>router.push('/admin/profiles')} className="flex h-[40px] py-[8px] px-[16px] items-center justify-center gap-[10px] w-full rounded-[10px] bg-[#E6E6E6] border-[1.5px] border-[#3C3333] text-[#3C3333] text-[15px] font-bold hover:bg-white transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                    View All Profiles
+                  </button>
                 </div>
               </div>
 
-              {/* Animal Reports Card */}
-              <div className="w-full lg:w-[calc(33.333%-16px)] bg-[#FFFFFF] rounded-2xl shadow-lg overflow-hidden border-2 border-[#5E9BBA] flex flex-col">
+              {/* CARD 2: Animal Reports */}
+              <div className="bg-[#5E9BBA] rounded-[24px] overflow-hidden shadow-md flex flex-col h-[400px]">
                 {/* Header */}
-                <a
-                  href="/admin/report"
-                  className="
-    flex h-[86px] min-w-[270px] pl-[10px]
-    justify-between items-center self-stretch
-    rounded-t-[12px] bg-[#E6E6E6] shadow-md border-b-2 border-[#5E9BBA]
-  "
-                >
-                  <div className="flex-1 px-1">
-                    <h2
-                      className="text-lg lg:text-lg font-medium mb-0.5"
-                      style={{
-                        color: "#5E9BBA",
-                        fontFamily: '"Genty Sans", sans-serif',
-                      }}
-                    >
-                      Animal Reports
-                    </h2>
-                    <p
-                      className="text-[10px] md:text-xs lg:text-xs text-[#3C3333]"
-                      style={{ fontFamily: '"Genty Sans", sans-serif' }}
-                    >
-                      Track Stray Findings and Reports
-                    </p>
+                <div className="px-5 py-4 flex gap-4 items-center">
+                  <img src="/nav/report.png" className="w-[45px] h-[45px] opacity-100" style={{ filter: 'brightness(0) invert(1)' }}/>
+                  <div>
+                    <h3 className="text-white text-2xl font-normal tracking-wide" style={{fontFamily: '"Genty Sans", sans-serif'}}>Animal Reports</h3>
+                    <p className="text-[#213641] text-[12px] font-bold mt-0.5">Track Stray Findings and Reports</p>
                   </div>
-
-                  <div className="w-24 lg:w-32 flex items-center justify-center bg-[#5E9BBA] h-full rounded-tr-[12px]">
-                    <img
-                      src="/nav/report.png"
-                      alt="Animal Reports"
-                      className="w-10 h-10 lg:w-12 lg:h-12"
-                    />
-                  </div>
-                </a>
-
-                {/* Preview and Button Container */}
-                <div
-                  className="
-    flex flex-col items-start self-stretch
-    px-[10px] pb-[20px] pt-[20px] h-full
-  "
-                >
-                  {/* Preview Items */}
-                  <div className="flex flex-col gap-[10px] flex-1 w-full">
-                  {recentReports.length === 0 ? (
-                    <div className="text-sm text-gray-500">No recent reports</div>
-                  ) : (
-                    recentReports.slice(0, 3).map((report, idx) => {
-                      const isResolved = report.report_status === 'Resolved' || report.report_status === 'Accepted';
-                      // Only calculate timeAgo on client after mount
-                      let timeAgo = '';
-                      if (isMounted) {
-                        if (!report.created_at) timeAgo = 'Unknown';
-                        else {
-                          const now = new Date();
-                          const created = new Date(report.created_at);
-                          const diffMs = now.getTime() - created.getTime();
-                          const diffMins = Math.floor(diffMs / 60000);
-                          const diffHours = Math.floor(diffMs / 3600000);
-                          const diffDays = Math.floor(diffMs / 86400000);
-                          if (diffMins < 60) timeAgo = `${diffMins} min${diffMins !== 1 ? 's' : ''}`;
-                          else if (diffHours < 24) timeAgo = `${diffHours} hr${diffHours !== 1 ? 's' : ''}`;
-                          else timeAgo = `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
-                        }
-                      }
-                      return (
-                        <div
-                          key={report.report_id || idx}
-                          onClick={() => router.push(`/admin/report/${report.report_id}`)}
-                          className={`flex flex-col p-4 rounded-lg border cursor-pointer w-full ${
-                            isResolved
-                              ? "border-[#689668] bg-[#CDE0EA]"
-                              : "border-[#DC2626] bg-[#CDE0EA]"
-                          }`}
-                        >
-                          {/* Title with icon */}
-                          <div className="flex items-center gap-3 mb-1">
-                            {isResolved ? (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="14"
-                                height="14"
-                                viewBox="0 0 14 14"
-                                fill="none"
-                              >
-                                <g clipPath="url(#clip0_723_2224)">
-                                  <path
-                                    d="M12.8334 6.46309V6.99976C12.8327 8.25767 12.4254 9.48165 11.6722 10.4892C10.919 11.4967 9.86033 12.2337 8.65404 12.5904C7.44775 12.947 6.15848 12.9042 4.97852 12.4683C3.79856 12.0323 2.79113 11.2266 2.10647 10.1714C1.42182 9.11611 1.09663 7.8678 1.17939 6.61261C1.26216 5.35742 1.74845 4.16262 2.56574 3.20638C3.38304 2.25015 4.48754 1.58373 5.71452 1.30651C6.94151 1.02929 8.22524 1.15612 9.37425 1.66809"
-                                    stroke="#689668"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M12.8333 2.3335L7 8.17266L5.25 6.42266"
-                                    stroke="#689668"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </g>
-                              </svg>
-                            ) : (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="14"
-                                height="14"
-                                viewBox="0 0 14 14"
-                                fill="none"
-                              >
-                                <g clipPath="url(#clip0_722_2774)">
-                                  <path
-                                    d="M7.00008 12.8332C10.2217 12.8332 12.8334 10.2215 12.8334 6.99984C12.8334 3.77818 10.2217 1.1665 7.00008 1.1665C3.77842 1.1665 1.16675 3.77818 1.16675 6.99984C1.16675 10.2215 3.77842 12.8332 7.00008 12.8332Z"
-                                    stroke="#DC2626"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M7 4.6665V6.99984"
-                                    stroke="#DC2626"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M7 9.3335H7.00583"
-                                    stroke="#DC2626"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </g>
-                              </svg>
-                            )}
-                            <p
-                              className="text-xs"
-                              style={{
-                                color: "#213641",
-                                fontFamily: '"Genty Sans", sans-serif',
-                              }}
-                            >
-                              {report.report_title || 'Untitled Report'}
-                            </p>
-                          </div>
-
-                          {/* Description */}
-                          <p className="text-[10px]" style={{ color: "#385D70" }}>
-                            {report.animal_description || 'No description'}
-                          </p>
-
-                          {/* Location and Time Info */}
-                          <div className="flex gap-3">
-                            <div className="flex items-center gap-1">
-                              <span
-                                className="text-[10px] font-medium"
-                                style={{ color: "#3C3333" }}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="10"
-                                  height="10"
-                                  viewBox="0 0 10 10"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M5.00008 5.00016C5.22925 5.00016 5.42543 4.91857 5.58862 4.75537C5.75182 4.59218 5.83341 4.396 5.83341 4.16683C5.83341 3.93766 5.75182 3.74148 5.58862 3.57829C5.42543 3.41509 5.22925 3.3335 5.00008 3.3335C4.77091 3.3335 4.57473 3.41509 4.41154 3.57829C4.24835 3.74148 4.16675 3.93766 4.16675 4.16683C4.16675 4.396 4.24835 4.59218 4.41154 4.75537C4.57473 4.91857 4.77091 5.00016 5.00008 5.00016ZM5.00008 8.06266C5.8473 7.28488 6.47578 6.57829 6.8855 5.94287C7.29522 5.30745 7.50008 4.74322 7.50008 4.25016C7.50008 3.49322 7.25876 2.87343 6.77612 2.39079C6.29348 1.90815 5.70147 1.66683 5.00008 1.66683C4.29869 1.66683 3.70668 1.90815 3.22404 2.39079C2.7414 2.87343 2.50008 3.49322 2.50008 4.25016C2.50008 4.74322 2.70494 5.30745 3.11466 5.94287C3.52439 6.57829 4.15286 7.28488 5.00008 8.06266ZM5.00008 9.16683C3.88203 8.21544 3.04696 7.33176 2.49487 6.51579C1.94279 5.69982 1.66675 4.94461 1.66675 4.25016C1.66675 3.2085 2.00182 2.37864 2.67196 1.76058C3.3421 1.14252 4.11814 0.833496 5.00008 0.833496C5.88203 0.833496 6.65807 1.14252 7.32821 1.76058C7.99835 2.37864 8.33341 3.2085 8.33341 4.25016C8.33341 4.94461 8.05737 5.69982 7.50529 6.51579C6.95321 7.33176 6.11814 8.21544 5.00008 9.16683Z"
-                                    fill="#47748C"
-                                  />
-                                </svg>
-                              </span>
-                              <span
-                                className="text-[10px] font-medium"
-                                style={{ color: "#385D70" }}
-                              >
-                                {report.landmark ? report.landmark.substring(0, 20) : 'Unknown'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="9"
-                                  height="9"
-                                  viewBox="0 0 9 9"
-                                  fill="none"
-                                >
-                                  <g clipPath="url(#clip0_723_2172)">
-                                    <path
-                                      d="M4.5 8.25C6.57107 8.25 8.25 6.57107 8.25 4.5C8.25 2.42893 6.57107 0.75 4.5 0.75C2.42893 0.75 0.75 2.42893 0.75 4.5C0.75 6.57107 2.42893 8.25 4.5 8.25Z"
-                                      stroke="#47748C"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                    <path
-                                      d="M4.5 2.25V4.5H6.1875"
-                                      stroke="#47748C"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </g>
-                                  <defs>
-                                    <clipPath id="clip0_723_2172">
-                                      <rect width="9" height="9" fill="white" />
-                                    </clipPath>
-                                  </defs>
-                                </svg>
-                              </span>
-                              <span
-                                className="text-[10px] font-medium"
-                                style={{ color: "#385D70" }}
-                              >
-                                {isMounted ? timeAgo : ''}
-                              </span>
-                            </div>
-                          </div>
+                </div>
+                {/* Content */}
+                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                  <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
+                    {recentReports.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent reports</div> : recentReports.slice(0, 3).map((r,i)=>(
+                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/report/${r.report_id}`)}>
+                        <div className="w-[60px] h-[60px] rounded-[14px] overflow-hidden shrink-0 bg-gray-200 shadow-sm">
+                          {r.photo_url ? <img src={r.photo_url} className="w-full h-full object-cover"/> : <div className="w-full h-full bg-[#5E9BBA]/20 flex items-center justify-center"><img src="/nav/report.png" className="w-8 h-8 opacity-50"/></div>}
                         </div>
-                      );
-                    })
-                  )}
+                        <div className="flex-1 overflow-hidden">
+                          <p className="font-bold text-[#3C3333] text-[16px] leading-tight flex items-center gap-1.5" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+                              <g clipPath="url(#clip0_1512_8553)">
+                                <path d="M7.00008 12.8334C10.2217 12.8334 12.8334 10.2217 12.8334 7.00008C12.8334 3.77842 10.2217 1.16675 7.00008 1.16675C3.77842 1.16675 1.16675 3.77842 1.16675 7.00008C1.16675 10.2217 3.77842 12.8334 7.00008 12.8334Z" stroke={r.report_status==='Pending' ? '#DC2626' : '#689668'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M7 4.66675V7.00008" stroke={r.report_status==='Pending' ? '#DC2626' : '#689668'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M7 9.33325H7.00583" stroke={r.report_status==='Pending' ? '#DC2626' : '#689668'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </g>
+                              <defs>
+                                <clipPath id="clip0_1512_8553">
+                                  <rect width="14" height="14" fill="white"/>
+                                </clipPath>
+                              </defs>
+                            </svg>
+                            <span className="line-clamp-1">{r.report_title || 'Report'}</span>
+                          </p>
+                          <p className="text-[12px] text-[#A69999] font-bold mt-1 leading-none line-clamp-1">{r.animal_description}</p>
+                          <p className="text-[12px] text-[#A69999] font-bold mt-1 leading-none line-clamp-1">{r.landmark || 'Unknown Location'}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-
-                  {/* View All Button */}
-                  <button
-                    onClick={() => router.push('/admin/report')}
-                    className="
-    flex h-[33px] px-[16px] py-[8px]
-    items-center gap-[10px] self-stretch
-    rounded-lg bg-[#5E9BBA]
-    text-xs font-medium
-    hover:bg-[#4f8aa8] transition-colors mt-[10px]
-    justify-center
-  "
-                    style={{
-                      fontFamily: '"Genty Sans", sans-serif',
-                      color: "#FFF",
-                    }}
-                  >
+                </div>
+                {/* View All */}
+                <div className="flex flex-col justify-center items-center py-[15px] px-[24px] gap-[10px] w-full mt-auto">
+                  <button onClick={()=>router.push('/admin/report')} className="flex h-[40px] py-[8px] px-[16px] items-center justify-center gap-[10px] w-full rounded-[10px] bg-[#E6E6E6] border-[1.5px] border-[#3C3333] text-[#3C3333] text-[15px] font-bold hover:bg-white transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
                     View All Reports
                   </button>
                 </div>
               </div>
 
-              {/* Volunteer Requests Card */}
-              <div className="w-full lg:w-[calc(33.333%-16px)] bg-[#FFFFFF] rounded-2xl shadow-lg overflow-hidden border-2 border-[#C575AD] flex flex-col">
+              {/* CARD 3: Volunteer Requests */}
+              <div className="bg-[#C575AD] rounded-[24px] overflow-hidden shadow-md flex flex-col h-[400px]">
                 {/* Header */}
-                <a
-                  href="/admin/volunteer"
-                  className="
-    flex h-[86px] min-w-[270px] pl-[10px]
-    justify-between items-center self-stretch
-    rounded-t-[12px] bg-[#E6E6E6] shadow-md border-b-2 border-[#C575AD]
-  "
-                >
-                  <div className="flex-1 px-1">
-                    <h2
-                      className="text-lg lg:text-lg font-medium mb-0.5"
-                      style={{
-                        color: "#C575AD",
-                        fontFamily: '"Genty Sans", sans-serif',
-                      }}
-                    >
-                      Volunteer Requests
-                    </h2>
-                    <p
-                      className="text-[10px] md:text-xs lg:text-xs text-[#3C3333]"
-                      style={{ fontFamily: '"Genty Sans", sans-serif' }}
-                    >
-                      View and Manage Volunteer Tasks
-                    </p>
+                <div className="px-5 py-4 flex gap-4 items-center">
+                  <img src="/nav/user.png" className="w-[45px] h-[45px] opacity-100" style={{ filter: 'brightness(0) invert(1)' }}/>
+                  <div>
+                    <h3 className="text-white text-2xl font-normal tracking-wide" style={{fontFamily: '"Genty Sans", sans-serif'}}>Volunteer Requests</h3>
+                    <p className="text-[#45293D] text-[12px] font-bold mt-0.5">View and Manage Volunteer Tasks and Requests</p>
                   </div>
-
-                  <div className="w-24 lg:w-32 flex items-center justify-center bg-[#C575AD] h-full rounded-tr-[12px]">
-                    <img
-                      src="/nav/user.png"
-                      alt="Volunteer Requests"
-                      className="w-10 h-10 lg:w-12 lg:h-12"
-                    />
-                  </div>
-                </a>
-
-                {/* Preview and Button Container */}
-                <div
-                  className="
-    flex flex-col items-start self-stretch
-    px-[10px] pb-[20px] pt-[20px] h-full
-  "
-                >
-                  <div className="flex flex-col gap-[10px] flex-1 w-full">
-                  {recentVolunteers.length === 0 ? (
-                    <div className="text-sm text-gray-500">No recent requests</div>
-                  ) : (
-                    recentVolunteers.slice(0, 4).map((volunteer, idx) => (
-                      <div
-                        key={volunteer.id || idx}
-                        onClick={() => router.push('/admin/volunteer')}
-                        className="
-        flex h-[55px] pl-[6px] pr-[10px] py-[4px]
-        justify-between items-center self-stretch
-        rounded-[6px] border-1 border-[#C575AD] bg-[#EDD4E6]
-        cursor-pointer
-      "
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-300 rounded-lg overflow-hidden flex items-center justify-center">
-                            <span className="text-xs font-semibold text-gray-600">
-                              {volunteer.call_title && volunteer.call_title.length > 0 ? volunteer.call_title[0].toUpperCase() : 'V'}
-                            </span>
-                          </div>
-                          <div>
-                            <p
-                              className="font-medium text-xs text-[#45293D]"
-                              style={{ fontFamily: '"Genty Sans", sans-serif' }}
-                            >
-                              {volunteer.call_title || 'Volunteer Request'}
-                            </p>
-                            <p className="text-[10px] text-[#45293D]">
-                              {volunteer.call_status || 'Pending'}
-                            </p>
-                          </div>
+                </div>
+                {/* Content */}
+                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                  <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
+                    {recentVolunteers.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent volunteers</div> : recentVolunteers.slice(0, 3).map((v,i)=>(
+                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/volunteer`)}>
+                        <div className="w-[60px] h-[60px] rounded-[14px] overflow-hidden shrink-0 bg-[#C575AD]/20 shadow-sm flex items-center justify-center text-3xl font-bold text-[#C575AD]" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                          {v.call_title?.[0]?.toUpperCase()}
                         </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="font-bold text-[#3C3333] text-[16px] leading-tight" style={{fontFamily: '"Genty Sans", sans-serif'}}>{v.call_title || 'Task'}</p>
+                          <p className={`text-[12px] font-bold mt-1 leading-none ${v.call_status==='Active'?'text-[#5E9BBA]':'text-[#C575AD]'}`}>{v.call_status || 'Pending'}</p>
+                          <p className="text-[12px] text-[#A69999] font-bold mt-1 leading-none">Added: {new Date(v.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3C3333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
                       </div>
-                    ))
-                  )}
+                    ))}
                   </div>
-
-                  {/* View All Button */}
-                  <button
-                    onClick={() => router.push('/admin/volunteer')}
-                    className="
-    flex h-[33px] px-[16px] py-[8px]
-    items-center gap-[10px] self-stretch
-    rounded-lg bg-[#C575AD]
-    text-xs font-medium
-    hover:bg-[#b05a9a] transition-colors mt-[10px]
-    justify-center
-  "
-                    style={{
-                      fontFamily: '"Genty Sans", sans-serif',
-                      color: "#FFF",
-                    }}
-                  >
-                    View All Volunteers
+                </div>
+                {/* View All */}
+                <div className="flex flex-col justify-center items-center py-[15px] px-[24px] gap-[10px] w-full mt-auto">
+                  <button onClick={()=>router.push('/admin/volunteer')} className="flex h-[40px] py-[8px] px-[16px] items-center justify-center gap-[10px] w-full rounded-[10px] bg-[#E6E6E6] border-[1.5px] border-[#3C3333] text-[#3C3333] text-[15px] font-bold hover:bg-white transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                    View All Requests
                   </button>
                 </div>
               </div>
+
+              {/* CARD 4: Adoption Requests */}
+              <div className="bg-[#689668] rounded-[24px] overflow-hidden shadow-md flex flex-col h-[400px]">
+                {/* Header */}
+                <div className="px-5 py-4 flex gap-4 items-center">
+                  <svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="opacity-100"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <div>
+                    <h3 className="text-white text-2xl font-normal tracking-wide" style={{fontFamily: '"Genty Sans", sans-serif'}}>Adoption Requests</h3>
+                    <p className="text-[#243524] text-[12px] font-bold mt-0.5">View and Manage Adoption Requests</p>
+                  </div>
+                </div>
+                {/* Content */}
+                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                  <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
+                    {recentAdoptions.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent adoption requests</div> : recentAdoptions.slice(0, 3).map((a,i)=>(
+                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/adoption`)}>
+                        <div className="w-[60px] h-[60px] rounded-[14px] overflow-hidden shrink-0 bg-[#689668]/20 shadow-sm flex items-center justify-center text-3xl font-bold text-[#689668]" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                          {a.applicant_name?.[0]?.toUpperCase()}
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="font-bold text-[#3C3333] text-[16px] leading-tight" style={{fontFamily: '"Genty Sans", sans-serif'}}>{a.applicant_name}</p>
+                          <p className={`text-[12px] font-bold mt-1 leading-none ${a.status==='pending'?'text-[#DCB57E]':'text-[#689668]'}`}>{a.status}</p>
+                          <p className="text-[12px] text-[#A69999] font-bold mt-1 leading-none">Added: {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString() : 'Unknown'}</p>
+                        </div>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3C3333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* View All */}
+                <div className="flex flex-col justify-center items-center py-[15px] px-[24px] gap-[10px] w-full mt-auto">
+                  <button onClick={()=>router.push('/admin/adoption')} className="flex h-[40px] py-[8px] px-[16px] items-center justify-center gap-[10px] w-full rounded-[10px] bg-[#E6E6E6] border-[1.5px] border-[#3C3333] text-[#3C3333] text-[15px] font-bold hover:bg-white transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                    View All Requests
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>

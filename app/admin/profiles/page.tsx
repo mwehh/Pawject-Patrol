@@ -176,7 +176,7 @@ export default function CatalogPage() {
           userEmail={userEmail}
           router={router}
         />
-        <div className="max-w-6xl mx-auto px-4 py-0 pl-[24px] pr-[24px]">
+        <div className="max-w-6xl mx-auto px-4 py-0 pl-6 pr-6">
           {/* Navigation header */}
           <div className="flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10">
             <div className="w-full max-w-[1200px] mx-auto flex items-center justify-between">
@@ -214,7 +214,7 @@ export default function CatalogPage() {
                 <button
                   onClick={handleLogout}
                   className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-                  aria-label="Sign out"
+                  aria-label="Logout"
                 >
                   <LogIn className="w-6 h-6 text-gray-800" />
                 </button>
@@ -307,7 +307,7 @@ export default function CatalogPage() {
                   {/* Image Section */}
                   <div className="relative h-64 w-full bg-white">
                     <Image
-                      src={pet.animal_photo || "/default-animal.jpg"}
+                      src={pet.animal_photo || "/paws/paws1.png"}
                       alt={pet.animal_name || "Animal"}
                       fill
                       className="object-cover"
@@ -342,7 +342,7 @@ export default function CatalogPage() {
                   >
                     <p className="mb-3 flex items-center gap-2">
                       <MapPin className="w-4 h-4" />{" "}
-                      {pet.animal_affiliation || "CSM"}
+                      {pet.animal_affiliation || "UP Mindanao"}
                     </p>
 
                     <div className="grid grid-cols-3 gap-3 mb-4 text-center">
