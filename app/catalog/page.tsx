@@ -17,7 +17,7 @@ import {
   Mail,
 } from "lucide-react";
 import { FaMars, FaVenus } from "react-icons/fa";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
 
@@ -322,6 +322,7 @@ export default function CatalogPage() {
   const [filter, setFilter] = useState<"all" | "cat" | "dog">("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -336,6 +337,17 @@ export default function CatalogPage() {
 
   // Modal state
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+
+  // If opened via QR (or direct link) like /catalog?animal_id=..., auto-open the modal.
+  useEffect(() => {
+    const animalId = searchParams.get("animal_id");
+    if (!animalId) return;
+    if (loading) return;
+    if (selectedAnimal) return;
+
+    const found = animals.find((a) => String(a.animal_id) === String(animalId));
+    if (found) setSelectedAnimal(found);
+  }, [searchParams, animals, loading, selectedAnimal]);
 
   useEffect(() => {
     // Check if the user is authenticated and set sidebar variant

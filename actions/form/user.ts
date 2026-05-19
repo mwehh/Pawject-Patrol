@@ -126,8 +126,6 @@ export async function createAnimalReport(data: AnimalReportInsert) {
 			reportTitle,
 		});
 
-		// SES email sending removed; rely on SNS/SMS/internal notifications instead.
-
 		const adminSmsNumbers = getAdminSmsNumbersFromEnv();
 		for (const phoneNumber of adminSmsNumbers) {
 			await sendSmsExternal({

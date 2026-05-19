@@ -2,13 +2,11 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { notifyAllAdmins, notifyUser } from "@/actions/notifications/internal";
-// SES email util removed — external emails via SES are disabled.
 import {
 	getAdminSmsNumbersFromEnv,
 	sendSmsExternal,
 	publishAdminAnimalReportStatusChangedExternal,
 } from "@/utils/aws/sns";
-// getUserEmailById removed as SES emails are disabled.
 
 // Define the structure of an admin animal report summary
 export interface AdminAnimalReportSummary {
@@ -173,10 +171,6 @@ export async function updateReportStatus(reportId: string, status: 'Accepted' | 
 					oldStatus: oldStatus ?? null,
 					newStatus: newStatus ?? null,
 				});
-
-				if (submitterId) {
-					// Previously fetched submitter email for SES; now skipped.
-				}
 
 				const adminSmsNumbers = getAdminSmsNumbersFromEnv();
 				for (const phoneNumber of adminSmsNumbers) {
