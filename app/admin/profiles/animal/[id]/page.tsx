@@ -454,14 +454,14 @@ export default function AdminAnimalDetailPage() {
                     style={{ backgroundColor: "#DED8D8" }}
                   >
                     <img
-                      src={`/api/qr/animal/${encodeURIComponent(animalId)}?size=320`}
+                      src={`/api/external/qr/animal/${encodeURIComponent(animalId)}?size=320`}
                       alt={`QR code for ${animal.animal_name || "animal"}`}
                       className="w-[220px] h-[220px] object-contain my-4"
                     />
                   </div>
 
                   <a
-                    href={`/api/qr/animal/${encodeURIComponent(animalId)}?size=768`}
+                    href={`/api/external/qr/animal/${encodeURIComponent(animalId)}?size=768`}
                     className="flex justify-center items-center w-full py-2 rounded-lg font-semibold transition"
                     style={{ backgroundColor: themeColor, color: "#FFF" }}
                   >
