@@ -33,9 +33,24 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: any = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      // Common when cookies are stale/cleared; treat as logged out.
+      if ((error as any).code !== "refresh_token_not_found") {
+        // eslint-disable-next-line no-console
+        console.error("[supabase-middleware] getUser error:", error);
+      }
+      user = null;
+    } else {
+      user = data.user;
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("[supabase-middleware] getUser exception:", e);
+    user = null;
+  }
   // Allow OAuth callback requests (they include code or access_token in the query)
   // to pass through so the client page can finish processing the session.
   const search = request.nextUrl.search;
@@ -90,17 +105,19 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const { data: isAdmin } = await supabase
-    .from("admin")
-    .select("auth_id")
-    .eq("auth_id", user?.id)
-    .single();
+  if (user) {
+    const { data: isAdmin } = await supabase
+      .from("admin")
+      .select("auth_id")
+      .eq("auth_id", user.id)
+      .single();
 
-  if (user && !isAdmin && request.nextUrl.pathname.startsWith("/admin")) {
-    // user is logged in, potentially respond by redirecting the user to the home page
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    return NextResponse.redirect(url);
+    if (!isAdmin && request.nextUrl.pathname.startsWith("/admin")) {
+      // user is logged in, potentially respond by redirecting the user to the home page
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
   }
   // If user is logged in and on /admin/login without an error, redirect to /admin.
   // Allow staying on /admin/login when there's an error query (e.g., unauthorized, server_misconfig)

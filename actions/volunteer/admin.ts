@@ -79,6 +79,19 @@ type VolunteerCall = {
   created_at?: string | null;
 };
 
+function getServiceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL not configured",
+    );
+  }
+
+  return createSupabaseClient(supabaseUrl, serviceRoleKey);
+}
+
 function formatChangeValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "empty";
   return String(value);
@@ -204,7 +217,9 @@ export async function getUsersJoinedCall(callId: string): Promise<string[]> {
       return [];
     }
     
-    return (responses || []).map(r => r.user_id).filter(Boolean);
+    return (responses || [])
+      .map((r: { user_id: string | null }) => r.user_id)
+      .filter((userId): userId is string => Boolean(userId));
   } catch (e) {
     console.error("getUsersJoinedCall exception:", e);
     return [];

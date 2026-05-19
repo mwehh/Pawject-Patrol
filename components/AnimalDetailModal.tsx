@@ -35,7 +35,7 @@ const hoverColors: Record<string, string> = {
   "#8D52A7": "#7F4A96",
 };
 
-function getThemeColor(theme: string | null): string {
+function getThemeColor(theme: string | null | undefined): string {
   if (!theme) return "#689668";
   const themeMap: Record<string, string> = {
     blue: "#5E9BBA",
@@ -59,7 +59,8 @@ export default function AnimalDetailModal({
 
   if (!animal) return null;
 
-  const color = getThemeColor(animal.animal_theme);
+  const themeValue = (animal as any).animal_theme ?? null;
+  const color = getThemeColor(themeValue);
   const hoverColor = hoverColors[color] || color;
 
   return (
@@ -169,7 +170,7 @@ export default function AnimalDetailModal({
             {activeTab === "qr" && (
               <div className="flex flex-col sm:flex-row gap-4 items-start pb-4">
                 <div className="bg-white p-2 rounded-lg shrink-0 mx-auto sm:mx-0 shadow-lg">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://pawjectpatrol.app/catalog/${animal.animal_id}`} alt="QR Code" width={100} height={100} className="rounded" style={{ backgroundColor: "white" }} />
+                  <img src={`/api/external/qr/animal/${encodeURIComponent(animal.animal_id)}?size=150`} alt="QR Code" width={100} height={100} className="rounded" style={{ backgroundColor: "white" }} />
                 </div>
                 <div className="flex-1 text-center sm:text-left mt-2 sm:mt-0">
                   <h3 className="text-lg font-bold mb-1 tracking-wide" style={{ fontFamily: '"Genty Sans", sans-serif' }}>Help ( {animal.animal_name} ) !</h3>

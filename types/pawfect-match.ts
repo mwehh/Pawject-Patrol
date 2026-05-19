@@ -21,6 +21,10 @@ export type AnimalRecord = {
 	animal_gender: string | null;
 	health_issues: string | null;
 	vaccination_status: string | null;
+	// Optional additional fields present in some responses
+	animal_affiliation?: string | null;
+	animal_collar?: string | null;
+	animal_theme?: string | null;
 };
 
 export type BreedTraits = {

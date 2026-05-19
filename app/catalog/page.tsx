@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -76,7 +76,7 @@ interface Animal {
 // AnimalDetailModal extracted to components/AnimalDetailModal.tsx
 
 // Catalog Page Component
-export default function CatalogPage() {
+function CatalogPageInner() {
   // State variables
   const [filter, setFilter] = useState<"all" | "cat" | "dog">("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -257,10 +257,6 @@ export default function CatalogPage() {
           variant={sidebarVariant}
         />
 
-        {/* Determine Sidebar variant after admin check */}
-        {/* The Sidebar above will be re-rendered with the correct variant after admin check below */}
-        {/* Admin/user/guest logic for Sidebar variant */}
-        {/* This logic is handled in useEffect, so we can set a state for sidebarVariant */}
         <div className="max-w-6xl mx-auto px-4 py-0 pl-6 pr-6">
           {/* Navigation header */}
           <div className="flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10">
@@ -518,5 +514,13 @@ export default function CatalogPage() {
         onClose={() => setPawfectMatchOpen(false)}
       />
     </>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense fallback={null}>
+      <CatalogPageInner />
+    </Suspense>
   );
 }

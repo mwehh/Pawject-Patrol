@@ -1415,14 +1415,6 @@ export function UserDashboard() {
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
               </button>
-
-              <button
-                onClick={handleLogout}
-                className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
-                aria-label="Sign out"
-              >
-                <LogIn className="w-6 h-6 text-gray-800" />
-              </button>
             </div>
           </div>
         </header>

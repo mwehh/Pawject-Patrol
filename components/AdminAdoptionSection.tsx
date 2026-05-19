@@ -17,6 +17,7 @@ type AdoptionApplication = {
   reason: string | null;
   status: string;
   submitted_at: string;
+  reviewed_at?: string | null;
   animal?: {
     animal_id: string;
     animal_name: string | null;
@@ -108,7 +109,11 @@ export default function AdminAdoptionSection() {
       console.error("Failed to load adoption applications", error);
       setApplications([]);
     } else {
-      setApplications((data || []) as AdoptionApplication[]);
+      const mapped = (data || []).map((d: any) => ({
+        ...d,
+        animal: Array.isArray(d.animal) ? d.animal[0] ?? null : d.animal ?? null,
+      }));
+      setApplications(mapped as AdoptionApplication[]);
     }
     setLoading(false);
   }
@@ -148,7 +153,11 @@ export default function AdminAdoptionSection() {
       console.error("Failed to load adoption history", error);
       setApplications([]);
     } else {
-      setApplications((data || []) as AdoptionApplication[]);
+      const mapped = (data || []).map((d: any) => ({
+        ...d,
+        animal: Array.isArray(d.animal) ? d.animal[0] ?? null : d.animal ?? null,
+      }));
+      setApplications(mapped as AdoptionApplication[]);
     }
     setLoading(false);
   }

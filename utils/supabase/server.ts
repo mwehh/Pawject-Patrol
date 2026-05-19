@@ -38,7 +38,10 @@ export async function getUser() {
   const userObject = await auth.getUser();
 
   if (userObject.error) {
-    console.error(userObject.error);
+    // Common when cookies are stale/cleared; treat as logged out.
+    if ((userObject.error as any).code !== "refresh_token_not_found") {
+      console.error(userObject.error);
+    }
     return null;
   }
 

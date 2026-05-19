@@ -414,62 +414,6 @@ export default function AdminAnimalDetailPage() {
 
           {/* Right Column - Info Cards */}
           <div className="flex flex-col gap-4">
-            {/* QR Code */}
-            <div
-              className="flex flex-col justify-center items-center gap-4 flex-[1_0_0] self-stretch p-6 rounded-2xl"
-              style={{ backgroundColor: "#E6E6E6" }}
-            >
-              <h3
-                className="flex items-center gap-[10px] self-stretch p-[10px] rounded-[8px] text-sm font-bold mb-3"
-                style={{ color: "#FFF", backgroundColor: themeColor }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="3" width="7" height="7" />
-                  <rect x="14" y="3" width="7" height="7" />
-                  <rect x="3" y="14" width="7" height="7" />
-                  <path d="M14 14h3v3h-3z" />
-                  <path d="M20 14h1v1h-1z" />
-                  <path d="M14 20h1v1h-1z" />
-                  <path d="M18 18h3v3h-3z" />
-                </svg>
-                QR Code
-              </h3>
-
-              {!animalId ? (
-                <p className="text-xs opacity-80 self-stretch">QR unavailable (missing animal id).</p>
-              ) : (
-                <>
-                  <div
-                    className="w-full rounded-[14px] flex flex-col items-center justify-center overflow-hidden"
-                    style={{ backgroundColor: "#DED8D8" }}
-                  >
-                    <img
-                      src={`/api/external/qr/animal/${encodeURIComponent(animalId)}?size=320`}
-                      alt={`QR code for ${animal.animal_name || "animal"}`}
-                      className="w-[220px] h-[220px] object-contain my-4"
-                    />
-                  </div>
-
-                  <a
-                    href={`/api/external/qr/animal/${encodeURIComponent(animalId)}?size=768`}
-                    className="flex justify-center items-center w-full py-2 rounded-lg font-semibold transition"
-                    style={{ backgroundColor: themeColor, color: "#FFF" }}
-                  >
-                    Download QR (PNG)
-                  </a>
-                </>
-              )}
-            </div>
 
             {/* Animal Information */}
             <div
@@ -940,7 +884,7 @@ export default function AdminAnimalDetailPage() {
             <div className="flex flex-row items-center gap-6 self-stretch w-full overflow-hidden">
               <div className="flex-shrink-0 bg-white p-2 rounded-lg inline-flex items-center justify-center">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(typeof window !== 'undefined' ? `${window.location.origin}/catalog/${animal.animal_id}` : '')}`}
+                  src={`/api/external/qr/animal/${encodeURIComponent(animal.animal_id)}?size=150`}
                   alt="QR Code"
                   className="w-24 h-24 sm:w-32 sm:h-32 object-contain"
                 />
