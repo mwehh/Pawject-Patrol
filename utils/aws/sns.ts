@@ -151,9 +151,9 @@ function getTopicArn(
   if (kind === "report_submitted") return process.env.SNS_TOPIC_REPORT_SUBMITTED_ARN || null;
   if (kind === "report_status_changed") return process.env.SNS_TOPIC_REPORT_STATUS_CHANGED_ARN || null;
   return (
-    process.env.AWS_SNS_TOPIC_VOLUNTEER_UPDATES_ARN ||
-    process.env.AWS_SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN ||
-    process.env.AWS_SNS_TOPIC_REPORT_VOLUNTEER_CALL_UPDATES_ARN ||
+    process.env.SNS_TOPIC_VOLUNTEER_UPDATES_ARN ||
+    process.env.SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN ||
+    process.env.SNS_TOPIC_REPORT_VOLUNTEER_CALL_UPDATES_ARN ||
     null
   );
 }
