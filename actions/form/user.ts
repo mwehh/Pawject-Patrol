@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { notifyAllAdmins } from "@/actions/notifications/internal";
+import { notifyAllAdmins, notifyUser } from "@/actions/notifications/internal";
 import {
 	getAdminSmsNumbersFromEnv,
 	sendSmsExternal,
@@ -112,6 +112,21 @@ export async function createAnimalReport(data: AnimalReportInsert) {
 		}
 	} catch (e) {
 		console.error('Failed to notify admins (animal_report.created):', e);
+	}
+
+	// Notify the reporting user (best-effort)
+	try {
+		await notifyUser(user.id, {
+			sender_id: user.id,
+			event_type: 'animal_report.created',
+			priority: 'normal',
+			title: 'Animal report submitted',
+			message: `Your animal report was submitted successfully${data.report_title ? `: ${data.report_title}` : '.'}`,
+			entity_type: 'animal_report',
+			entity_id: String(inserted.report_id),
+		});
+	} catch (e) {
+		console.error('Failed to notify user (animal_report.created):', e);
 	}
 
 	// External notifications via AWS SNS (best-effort)
