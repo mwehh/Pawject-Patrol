@@ -75,7 +75,8 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Allow public pages to pass through (including the root path).
+    // Allow public pages and internal API-key authenticated endpoints to pass through
+    // (including the root path).
     // Avoid redirecting the root path to itself which causes an infinite
     // redirect loop when there's no user.
     if (
@@ -84,6 +85,7 @@ export async function updateSession(request: NextRequest) {
       !request.nextUrl.pathname.startsWith("/admin/login") &&
       !request.nextUrl.pathname.startsWith("/catalog") &&
       !request.nextUrl.pathname.startsWith("/qr") &&
+      !request.nextUrl.pathname.startsWith("/api/internal") &&
       !request.nextUrl.pathname.startsWith("/api/external/qr") &&
       request.nextUrl.pathname !== "/" &&
       request.nextUrl.pathname !== "/about-us"
