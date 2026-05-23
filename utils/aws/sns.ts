@@ -39,6 +39,11 @@ function absoluteUrl(path: string): string {
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+function adminAbsoluteUrl(path: string): string {
+  const base = "https://pawject-patrol.d1bjfxqn6lx7l.amplifyapp.com";
+  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 function getSnsClient(): SNSClient | null {
   // Use only the Amplify-safe per-service env vars for SNS.
   const region = process.env.PAWJECT_AWS_REGION_SNS;
@@ -181,7 +186,7 @@ export async function publishAdminVolunteerCallJoinedExternal(params: {
   await publishExternal({
     topicArn,
     subject: "Pawject Patrol: New volunteer signup",
-    message: `${userName} joined volunteer call${callTitlePart}.\n\nAdmin link: ${absoluteUrl(
+    message: `${userName} joined volunteer call${callTitlePart}.\n\nAdmin link: ${adminAbsoluteUrl(
       `/admin/volunteer/${params.callId}`
     )}\nCall ID: ${params.callId}`,
     attributes: {
@@ -219,7 +224,7 @@ export async function publishAdminVolunteerCallLeftExternal(params: {
   await publishExternal({
     topicArn,
     subject: "Pawject Patrol: Volunteer left a call",
-    message: `${userName} left volunteer call${callTitlePart}.\n\nAdmin link: ${absoluteUrl(
+    message: `${userName} left volunteer call${callTitlePart}.\n\nAdmin link: ${adminAbsoluteUrl(
       `/admin/volunteer/${params.callId}`
     )}\nCall ID: ${params.callId}`,
     attributes: {
@@ -274,7 +279,7 @@ export async function publishAnimalReportSubmittedExternal(params: {
   await publishExternal({
     topicArn,
     subject: "Pawject Patrol: New animal report submitted",
-    message: `A new animal report was submitted${titlePart}.\n\nAdmin link: ${absoluteUrl(
+    message: `A new animal report was submitted${titlePart}.\n\nAdmin link: ${adminAbsoluteUrl(
       `/admin/report/${params.reportId}`
     )}\nReport ID: ${params.reportId}`,
     attributes: {
@@ -328,8 +333,7 @@ export async function publishAdminAnimalReportSubmittedExternal(params: {
   await publishExternal({
     topicArn,
     subject: "Pawject Patrol: New animal report submitted",
-    message: `A new animal report was submitted${titlePart}.
-\n\nAdmin link: ${absoluteUrl(`/admin/report/${params.reportId}`)}\nReport ID: ${params.reportId}`,
+    message: `A new animal report was submitted${titlePart}.\n\nAdmin link: ${adminAbsoluteUrl(`/admin/report/${params.reportId}`)}\nReport ID: ${params.reportId}`,
     attributes: {
       ...baseAttributes({
         eventType: "animal_report.created",
@@ -368,7 +372,7 @@ export async function publishAnimalReportStatusChangedExternal(params: {
   await publishExternal({
     topicArn,
     subject: "Pawject Patrol: Animal report status changed",
-    message: `Animal report${titlePart} status changed from ${oldStatus} to ${newStatus}.\n\nAdmin link: ${absoluteUrl(
+    message: `Animal report${titlePart} status changed from ${oldStatus} to ${newStatus}.\n\nAdmin link: ${adminAbsoluteUrl(
       `/admin/report/${params.reportId}`
     )}\nReport ID: ${params.reportId}`,
     attributes: {
@@ -432,8 +436,7 @@ export async function publishAdminAnimalReportStatusChangedExternal(params: {
   await publishExternal({
     topicArn,
     subject: "Pawject Patrol: Animal report status changed",
-    message: `Animal report${titlePart} status changed from ${oldStatus} to ${newStatus}.
-\n\nAdmin link: ${absoluteUrl(`/admin/report/${params.reportId}`)}\nReport ID: ${params.reportId}`,
+    message: `Animal report${titlePart} status changed from ${oldStatus} to ${newStatus}.\n\nAdmin link: ${adminAbsoluteUrl(`/admin/report/${params.reportId}`)}\nReport ID: ${params.reportId}`,
     attributes: {
       ...baseAttributes({
         eventType: "animal_report.status_changed",
