@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Admin dashboard page component - displays stats and navigation cards
 export default function HeaderAndBackground() {
@@ -277,8 +278,8 @@ export default function HeaderAndBackground() {
 
       <div className="relative z-10 w-full flex flex-col items-center flex-1">
         {/* Header with menu, logo, and logout button */}
-        <header className="flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto">
-          <div className="w-full max-w-[1400px] mx-auto flex items-center justify-between">
+        <header className="flex items-center justify-between px-2 sm:px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10">
+          <div className="w-full max-w-[1200px] mx-auto flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 hover:bg-gray-100 rounded-lg transition"
@@ -292,23 +293,41 @@ export default function HeaderAndBackground() {
                 alt="Pawject Patrol Logo"
                 width={77}
                 height={36}
-                className="shrink-0"
+                className="w-16 h-auto sm:w-[77px] shrink-0"
               />
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
-            >
-              <LogIn className="w-6 h-6 text-gray-800" />
-            </button>
+            <div className="flex items-center gap-2">
+              <AdminNotificationsBell />
+
+              {/* Logout Button (Desktop only with text, mobile uses just icon) */}
+              <button
+                onClick={handleLogout}
+                className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+                style={{ fontFamily: '"Genty Sans", sans-serif' }}
+              >
+                <span>Logout</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+              {/* Mobile Logout Icon */}
+              <button
+                onClick={handleLogout}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+                aria-label="Sign out"
+              >
+                <LogIn className="w-6 h-6 text-gray-800" />
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="max-w-6xl mx-auto px-4 py-6 w-full">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 py-6 w-full">
           {/* Wrapper Container */}
-                    {/* Wrapper Container */}
-          <div className="bg-[#E1E69D] rounded-2xl md:p-5 lg:p-8 flex flex-col gap-6">
+          <div className="bg-[#E1E69D] rounded-2xl p-4 md:p-5 lg:p-8 flex flex-col gap-4 sm:gap-6">
             
             {/* Welcome Message */}
             <div className="flex flex-col gap-4">
@@ -396,7 +415,7 @@ export default function HeaderAndBackground() {
 
         {/* --- Segmented Pills and Cards --- */}
         <div className="w-full flex-1 bg-transparent">
-          <div className="max-w-6xl mx-auto px-4 pb-12 flex flex-col gap-6">
+          <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 pb-12 flex flex-col gap-6">
             
             {/* Nav Pills Scrollable */}
             <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar items-center">
@@ -431,7 +450,7 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentAnimals.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent animals</div> : recentAnimals.slice(0, 3).map((a,i)=>(
                       <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/profiles/${a.animal_id}`)}>
@@ -469,7 +488,7 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentReports.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent reports</div> : recentReports.slice(0, 3).map((r,i)=>(
                       <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/report/${r.report_id}`)}>
@@ -518,7 +537,7 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentVolunteers.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent volunteers</div> : recentVolunteers.slice(0, 3).map((v,i)=>(
                       <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/volunteer`)}>
@@ -556,7 +575,7 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentAdoptions.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent adoption requests</div> : recentAdoptions.slice(0, 3).map((a,i)=>(
                       <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/adoption`)}>
