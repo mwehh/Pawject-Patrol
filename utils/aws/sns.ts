@@ -151,10 +151,17 @@ async function publishExternal({
 }
 
 function getTopicArn(
-  kind: "report_submitted" | "report_status_changed" | "volunteer_updates"
+  kind:
+    | "report_submitted"
+    | "report_status_changed"
+    | "adoption_submitted"
+    | "adoption_status_changed"
+    | "volunteer_updates"
 ): string | null {
   if (kind === "report_submitted") return process.env.SNS_TOPIC_REPORT_SUBMITTED_ARN || null;
   if (kind === "report_status_changed") return process.env.SNS_TOPIC_REPORT_STATUS_CHANGED_ARN || null;
+  if (kind === "adoption_submitted") return process.env.SNS_TOPIC_ADOPTION_SUBMITTED_ARN || null;
+  if (kind === "adoption_status_changed") return process.env.SNS_TOPIC_ADOPTION_STATUS_CHANGED_ARN || null;
   return (
     process.env.SNS_TOPIC_VOLUNTEER_UPDATES_ARN ||
     process.env.SNS_TOPIC_REPORT_VOLUNTEER_UPDATES_ARN ||
@@ -445,6 +452,90 @@ export async function publishAdminAnimalReportStatusChangedExternal(params: {
         entityId: params.reportId,
         priority: "high",
       }),
+      old_status: oldStatus,
+      new_status: newStatus,
+    },
+  });
+}
+
+export async function publishAdminAdoptionApplicationSubmittedExternal(params: {
+  applicationId: string;
+  animalId: string;
+  animalName?: string | null;
+  applicantName?: string | null;
+}): Promise<void> {
+  const topicArn = getTopicArn("adoption_submitted");
+  if (!topicArn) {
+    if (!didWarnMissingConfig) {
+      didWarnMissingConfig = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[sns] Missing SNS_TOPIC_ADOPTION_SUBMITTED_ARN. External notifications are disabled."
+      );
+    }
+    return;
+  }
+
+  const applicantName = params.applicantName?.trim() || "A user";
+  const animalLabel = params.animalName?.trim() || `Animal ${params.animalId}`;
+
+  await publishExternal({
+    topicArn,
+    subject: "Pawject Patrol: New adoption application submitted",
+    message: `${applicantName} submitted an adoption application for ${animalLabel}.\n\nAdmin dashboard: ${adminAbsoluteUrl("/admin")}\nApplication ID: ${params.applicationId}\nAnimal ID: ${params.animalId}\nAnimal: ${animalLabel}`,
+    attributes: {
+      ...baseAttributes({
+        eventType: "adoption_application.created",
+        audience: "admin",
+        entityType: "adoption_application",
+        entityId: params.applicationId,
+        priority: "high",
+      }),
+      animal_id: params.animalId,
+      animal_name: params.animalName?.trim() || undefined,
+    },
+  });
+}
+
+export async function publishAdminAdoptionApplicationStatusChangedExternal(params: {
+  applicationId: string;
+  animalId: string;
+  animalName?: string | null;
+  applicantName?: string | null;
+  oldStatus?: string | null;
+  newStatus?: string | null;
+}): Promise<void> {
+  const topicArn = getTopicArn("adoption_status_changed");
+  if (!topicArn) {
+    if (!didWarnMissingConfig) {
+      didWarnMissingConfig = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[sns] Missing SNS_TOPIC_ADOPTION_STATUS_CHANGED_ARN. External notifications are disabled."
+      );
+    }
+    return;
+  }
+
+  const applicantName = params.applicantName?.trim() || "A user";
+  const animalLabel = params.animalName?.trim() || `Animal ${params.animalId}`;
+  const oldStatus = params.oldStatus ?? "Pending";
+  const newStatus = params.newStatus ?? "Unknown";
+
+  await publishExternal({
+    topicArn,
+    subject: "Pawject Patrol: Adoption application status changed",
+    message: `${applicantName}'s adoption application for ${animalLabel} status changed from ${oldStatus} to ${newStatus}.\n\nAdmin dashboard: ${adminAbsoluteUrl("/admin")}\nApplication ID: ${params.applicationId}\nAnimal ID: ${params.animalId}\nAnimal: ${animalLabel}`,
+    attributes: {
+      ...baseAttributes({
+        eventType: "adoption_application.status_changed",
+        audience: "admin",
+        entityType: "adoption_application",
+        entityId: params.applicationId,
+        priority: "high",
+      }),
+      animal_id: params.animalId,
+      animal_name: params.animalName?.trim() || undefined,
       old_status: oldStatus,
       new_status: newStatus,
     },

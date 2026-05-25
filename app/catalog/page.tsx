@@ -22,6 +22,7 @@ import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
 import PawfectMatchModal from "@/components/PawfectMatchModal";
 import AnimalDetailModal from "@/components/AnimalDetailModal";
+import UserNotificationsBell from "@/components/UserNotificationsBell";
 
 // Panel colors
 const panelColors = ["#689668", "#DCB57E", "#5E9BBA", "#C575AD", "#8D52A7"];
@@ -123,8 +124,9 @@ function CatalogPageInner() {
     // Check if the user is authenticated and set sidebar variant
     const checkAuthAndVariant = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
       setIsAuthenticated(!!user);
       if (user) {
         setUserEmail(user.email || "");
@@ -275,38 +277,41 @@ function CatalogPageInner() {
                   height={36}
                 />
               </div>
-              {/* Login/Logout Button */}
-              <button
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-                onClick={async () => {
-                  // If not authenticated, go to /login
-                  if (!isAuthenticated) {
-                    router.push("/login");
-                    return;
-                  }
-                  // Check if admin by querying admin table
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (user) {
-                    const { data: adminData, error } = await supabase
-                      .from('admin')
-                      .select('auth_id')
-                      .eq('auth_id', user.id)
-                      .single();
-                    if (adminData && !error) {
-                      // Admin: logout and go to /admin/login
-                      await supabase.auth.signOut();
-                      router.replace("/admin/login");
+              <div className="flex items-center gap-2">
+                {isAuthenticated ? <UserNotificationsBell /> : null}
+                {/* Login/Logout Button */}
+                <button
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  onClick={async () => {
+                    // If not authenticated, go to /login
+                    if (!isAuthenticated) {
+                      router.push("/login");
                       return;
                     }
-                  }
-                  // User: logout and go to /login
-                  await supabase.auth.signOut();
-                  router.replace("/login");
-                }}
-                aria-label={isAuthenticated ? "Logout" : "Login"}
-              >
-                  <LogIn className="w-6 h-6 text-gray-800" />
-              </button>
+                    // Check if admin by querying admin table
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                      const { data: adminData, error } = await supabase
+                        .from('admin')
+                        .select('auth_id')
+                        .eq('auth_id', user.id)
+                        .single();
+                      if (adminData && !error) {
+                        // Admin: logout and go to /admin/login
+                        await supabase.auth.signOut();
+                        router.replace("/admin/login");
+                        return;
+                      }
+                    }
+                    // User: logout and go to /login
+                    await supabase.auth.signOut();
+                    router.replace("/login");
+                  }}
+                  aria-label={isAuthenticated ? "Logout" : "Login"}
+                >
+                    <LogIn className="w-6 h-6 text-gray-800" />
+                </button>
+              </div>
             </div>
           </div>
           {/* Page header below navigation, styled like animal profile form */}

@@ -1,26 +1,13 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
-
-type SupabaseUser = {
-  email?: string;
-};
-import { useSearchParams, usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { signInWithGoogle } from "@/actions/login/user";
 import { useState } from "react";
-import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { Suspense } from "react";
-
-async function fetchAllowedDomains() {
-  const { data, error } = await supabase
-    .from('allowed_domains')
-    .select('domain');
-  if (error) return [];
-  return data.map((row: { domain: string }) => row.domain.toLowerCase());
-}
 
 // Child component that uses useSearchParams and handles all logic
 function LoginContent() {
@@ -29,101 +16,13 @@ function LoginContent() {
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
 
-  // Checks the user's email domain and signs out if not allowed
-  const checkAndHandleDomain = useCallback(
-    async (user: SupabaseUser | null | undefined) => {
-      if (user && user.email) {
-        const allowedDomains = await fetchAllowedDomains();
-        const emailDomain = user.email.split('@')[1].toLowerCase();
-        // Debug logging
-        // eslint-disable-next-line no-console
-        console.log("[DEBUG] User email:", user.email, "| Extracted domain:", emailDomain, "| Allowed:", allowedDomains);
-        if (!allowedDomains.includes(emailDomain)) {
-          await supabase.auth.signOut();
-          setError("Please use your UP email account to sign in.");
-          setIsLoading(false);
-          // Don't setChecking(false) here, since redirect will unmount
-          if (pathname !== "/login") {
-            router.replace("/login?error=Please use your UP email account to sign in.");
-          }
-          return false;
-        } else {
-          // Only redirect to / if not already there
-          if (pathname !== "/") {
-            router.replace("/");
-          }
-          return true;
-        }
-      } else {
-        setChecking(false);
-        return false;
-      }
-    },
-    [router, pathname]
-  );
-
-  // Enforce allowed domain on mount and on auth state change
   useEffect(() => {
-    const urlError = searchParams.get("error");
-    if (urlError) {
-      setError(decodeURIComponent(urlError));
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setError(errorParam);
     }
-
-    const codeParam = searchParams.get("code");
-
-    if (codeParam) {
-      // OAuth callback - handle user verification after Google redirect
-      setChecking(true);
-
-      const verifyUser = async () => {
-        // Wait a bit for Supabase to process the OAuth callback
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user?.email) {
-          const allowedDomains = await fetchAllowedDomains();
-          const emailDomain = user.email.split('@')[1].toLowerCase();
-
-          console.log("[DEBUG] OAuth callback - Domain check:", { 
-            email: user.email, 
-            domain: emailDomain, 
-            allowed: allowedDomains 
-          });
-
-          if (!allowedDomains.includes(emailDomain)) {
-            await supabase.auth.signOut();
-            setError("Please use your UP email account to sign in.");
-            setChecking(false);
-            setIsLoading(false);
-            router.replace("/login");
-          } else {
-            console.log("[DEBUG] Domain allowed, redirecting to home");
-            window.location.href = "/";
-          }
-        } else {
-          console.log("[DEBUG] No user found after OAuth");
-          setChecking(false);
-        }
-      };
-
-      verifyUser();
-    } else {
-      // Regular page load - check if already logged in
-      setChecking(true);
-      const checkUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await checkAndHandleDomain(user);
-        } else {
-          setChecking(false);
-        }
-      };
-      checkUser();
-    }
-  }, [searchParams, checkAndHandleDomain, router]);
+  }, [searchParams]);
 
   // Handle Google login
   const handleGoogleLogin = async () => {
@@ -135,7 +34,7 @@ function LoginContent() {
       // Call server action to sign in with Google
       const result = await signInWithGoogle();
 
-      // Handle potential error from server action
+      // If the server action returned a non-success result, show it
       if (result && !result.success) {
         setError(result.message || "Login failed.");
         setIsLoading(false);
@@ -143,25 +42,44 @@ function LoginContent() {
         return;
       }
 
-      // Wait for auth state to update, then check email domain robustly
-      let user = null;
-      for (let i = 0; i < 20; i++) { // up to 4 seconds
-        const { data } = await supabase.auth.getUser();
-        user = data.user;
-        if (user) break;
-        await new Promise((res) => setTimeout(res, 200));
+      // If the server returned a provider URL, navigate the browser there
+      if (result && result.success && result.url) {
+        // Try multiple navigation methods to avoid browser blocks.
+        // Log the URL for debugging and attempt assign/open as fallback.
+        // eslint-disable-next-line no-console
+        console.log("Redirect URL:", result.url);
+
+        try {
+          window.location.assign(result.url);
+        } catch (e) {
+          try {
+            window.location.href = result.url;
+          } catch (e2) {
+            // Last resort: open in same tab via window.open
+            window.open(result.url, "_self");
+          }
+        }
+
+        // If navigation is blocked or fails, show the URL to the user after a short timeout.
+        setTimeout(() => {
+          setIsLoading(false);
+          setChecking(false);
+          setError(`Could not navigate to OAuth provider. Open this URL manually: ${result.url}`);
+        }, 5000);
+
+        return;
       }
 
-      // Always check and handle domain after login
-      const handled = await checkAndHandleDomain(user);
-      if (!handled) setChecking(false);
+      setError("Unable to start Google sign-in. Please try again.");
+      setIsLoading(false);
+      setChecking(false);
     } catch (err) {
       setError("An unexpected error occurred.");
       setIsLoading(false);
       setChecking(false);
     }
   };
-
+  
   return (
     <main className="relative min-h-screen bg-[#E1E69D] flex flex-col items-center justify-center overflow-hidden">
       {/* --- Hero Container  --- */}

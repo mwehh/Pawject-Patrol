@@ -34,8 +34,9 @@ export default function Home() {
     // Check if the user is authenticated
     const checkAuth = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
       setIsAuthenticated(!!user);
       setLoading(false);
       if (user) {

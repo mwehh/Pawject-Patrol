@@ -7,11 +7,20 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get("next") ?? "/";
+  const loginErrorUrl = `${origin}/login?error=${encodeURIComponent("Please use your UP email account to sign in.")}`;
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      const { data: { user } } = await supabase.auth.getUser();
+      const emailDomain = user?.email?.split("@")[1]?.toLowerCase() ?? "";
+
+      if (!user || emailDomain !== "up.edu.ph") {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(loginErrorUrl);
+      }
+
       const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
       const isLocalEnv = process.env.NODE_ENV === "development";
       if (isLocalEnv) {

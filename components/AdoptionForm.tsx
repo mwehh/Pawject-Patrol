@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { AnimalRecord } from "@/types/pawfect-match";
 
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
 };
 
 export default function AdoptionForm({ animal }: Props) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -49,6 +51,7 @@ export default function AdoptionForm({ animal }: Props) {
       setHousingType("");
       setPetExperience("");
       setWhy("");
+      router.push("/catalog");
     } catch (err: any) {
       setMessage(err?.message ?? "Submission failed");
     } finally {

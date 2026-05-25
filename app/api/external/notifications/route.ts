@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+	publishAdminAdoptionApplicationStatusChangedExternal,
+	publishAdminAdoptionApplicationSubmittedExternal,
 	publishAnimalReportStatusChangedExternal,
 	publishAnimalReportSubmittedExternal,
 } from '@/utils/aws/sns';
@@ -13,6 +15,9 @@ type ExternalNotificationBody = {
 	submitter_id?: string | null;
 	old_status?: string | null;
 	new_status?: string | null;
+	application_id?: string | null;
+	applicant_name?: string | null;
+	animal_id?: string | null;
 };
 
 function json(status: number, body: unknown) {
@@ -42,16 +47,16 @@ export async function POST(request: NextRequest) {
 		}
 
 		const eventType = body.event_type?.trim();
-		const reportId = body.report_id?.trim();
 		if (!eventType) {
 			return json(400, { ok: false, error: '`event_type` is required' });
-		}
-		if (!reportId) {
-			return json(400, { ok: false, error: '`report_id` is required' });
 		}
 
 		switch (eventType) {
 			case 'animal_report.created': {
+				const reportId = body.report_id?.trim();
+				if (!reportId) {
+					return json(400, { ok: false, error: '`report_id` is required' });
+				}
 				if (!body.submitter_id?.trim()) {
 					return json(400, { ok: false, error: '`submitter_id` is required for animal_report.created' });
 				}
@@ -65,10 +70,52 @@ export async function POST(request: NextRequest) {
 				return json(200, { ok: true, dispatched: true, event_type: eventType });
 			}
 			case 'animal_report.status_changed': {
+				const reportId = body.report_id?.trim();
+				if (!reportId) {
+					return json(400, { ok: false, error: '`report_id` is required' });
+				}
 				await publishAnimalReportStatusChangedExternal({
 					reportId,
 					reportTitle: body.report_title ?? null,
 					submitterId: body.submitter_id ?? null,
+					oldStatus: body.old_status ?? null,
+					newStatus: body.new_status ?? null,
+				});
+
+				return json(200, { ok: true, dispatched: true, event_type: eventType });
+			}
+			case 'adoption_application.created': {
+				const applicationId = body.application_id?.trim();
+				const animalId = body.animal_id?.trim();
+				if (!applicationId) {
+					return json(400, { ok: false, error: '`application_id` is required' });
+				}
+				if (!animalId) {
+					return json(400, { ok: false, error: '`animal_id` is required for adoption_application.created' });
+				}
+
+				await publishAdminAdoptionApplicationSubmittedExternal({
+					applicationId,
+					animalId,
+					applicantName: body.applicant_name ?? null,
+				});
+
+				return json(200, { ok: true, dispatched: true, event_type: eventType });
+			}
+			case 'adoption_application.status_changed': {
+				const applicationId = body.application_id?.trim();
+				const animalId = body.animal_id?.trim();
+				if (!applicationId) {
+					return json(400, { ok: false, error: '`application_id` is required' });
+				}
+				if (!animalId) {
+					return json(400, { ok: false, error: '`animal_id` is required for adoption_application.status_changed' });
+				}
+
+				await publishAdminAdoptionApplicationStatusChangedExternal({
+					applicationId,
+					animalId,
+					applicantName: body.applicant_name ?? null,
 					oldStatus: body.old_status ?? null,
 					newStatus: body.new_status ?? null,
 				});

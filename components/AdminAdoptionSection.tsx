@@ -173,22 +173,15 @@ export default function AdminAdoptionSection() {
   async function updateApplication(id: string, status: "Accepted" | "Rejected") {
     setActionId(id);
     try {
-      const application = applications.find((item) => item.id === id);
+      const response = await fetch(`/api/adoption/applications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
 
-      const { error: updateError } = await supabase
-        .from("adoption_applications")
-        .update({ status, reviewed_at: new Date().toISOString() })
-        .eq("id", id);
-
-      if (updateError) throw updateError;
-
-      if (status === "Accepted" && application?.animal_id) {
-        const { error: animalError } = await supabase
-          .from("animal")
-          .update({ animal_status: "Adopted" })
-          .eq("animal_id", application.animal_id);
-
-        if (animalError) throw animalError;
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || "Failed to update adoption application");
       }
 
       setApplications((current) => current.filter((item) => item.id !== id));

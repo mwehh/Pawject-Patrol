@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/utils/supabase/client";
 import Sidebar from "@/components/Sidebar";
+import AdminNotificationsBell from "@/components/AdminNotificationsBell";
 
 // Admin dashboard page component - displays stats and navigation cards
 export default function HeaderAndBackground() {
@@ -296,12 +297,15 @@ export default function HeaderAndBackground() {
               />
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
-            >
-              <LogIn className="w-6 h-6 text-gray-800" />
-            </button>
+            <div className="flex items-center gap-2">
+              <AdminNotificationsBell />
+              <button
+                onClick={handleLogout}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <LogIn className="w-6 h-6 text-gray-800" />
+              </button>
+            </div>
           </div>
         </header>
 
