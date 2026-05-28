@@ -115,6 +115,16 @@ export default function AdoptionForm({ animal }: Props) {
         </div>
 
         <div className="grid gap-2">
+          <label className="text-base sm:text-lg font-bold">Phone Number</label>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="rounded-full px-4 sm:px-5 py-3 sm:py-4 bg-[#DFE696] focus:outline-none text-sm sm:text-base placeholder:text-[#3C3333]/50 w-full"
+            placeholder="+63 xx xxx xxxx"
+          />
+        </div>
+
+        <div className="grid gap-2">
           <label className="text-base sm:text-lg font-bold">Address</label>
           <input value={address} onChange={(e) => setAddress(e.target.value)} className="rounded-full px-4 sm:px-5 py-3 sm:py-4 bg-[#DFE696] focus:outline-none text-sm sm:text-base placeholder:text-[#3C3333]/50 w-full" placeholder="Street, Barangay, City" />
         </div>

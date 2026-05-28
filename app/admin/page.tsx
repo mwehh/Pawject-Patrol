@@ -191,9 +191,15 @@ export default function HeaderAndBackground() {
 
       // Count adoptions
       const { count: adoptionCount } = await supabase
-        .from("adoption_application")
+        .from("adoption_applications")
         .select("*", { count: "exact", head: true })
-        .eq("status", "pending");
+        .eq("status", "Pending");
+
+      const { data: recentAdoptionsData } = await supabase
+        .from("adoption_applications")
+        .select("id, applicant_name, status, submitted_at")
+        .order("submitted_at", { ascending: false })
+        .limit(4);
 
       // Fetch recent entries for quick preview (latest 3)
       const { data: recentAnimalsData } = await supabase
@@ -224,6 +230,7 @@ export default function HeaderAndBackground() {
         setRecentAnimals(recentAnimalsData || []);
         setRecentReports(recentReportsData || []);
         setRecentVolunteers(recentVolunteersData || []);
+        setRecentAdoptions(recentAdoptionsData || []);
         setLoading(false);
       }
     };
@@ -278,8 +285,8 @@ export default function HeaderAndBackground() {
 
       <div className="relative z-10 w-full flex flex-col items-center flex-1">
         {/* Header with menu, logo, and logout button */}
-        <header className="flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto">
-          <div className="w-full max-w-[1400px] mx-auto flex items-center justify-between">
+        <header className="flex items-center justify-between px-2 sm:px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10">
+          <div className="w-full max-w-[1200px] mx-auto flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 hover:bg-gray-100 rounded-lg transition"
@@ -293,15 +300,31 @@ export default function HeaderAndBackground() {
                 alt="Pawject Patrol Logo"
                 width={77}
                 height={36}
-                className="shrink-0"
+                className="w-16 h-auto sm:w-[77px] shrink-0"
               />
             </div>
 
             <div className="flex items-center gap-2">
               <AdminNotificationsBell />
+
+              {/* Logout Button (Desktop only with text, mobile uses just icon) */}
               <button
                 onClick={handleLogout}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+                style={{ fontFamily: '"Genty Sans", sans-serif' }}
+              >
+                <span>Logout</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </button>
+              {/* Mobile Logout Icon */}
+              <button
+                onClick={handleLogout}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+                aria-label="Sign out"
               >
                 <LogIn className="w-6 h-6 text-gray-800" />
               </button>
@@ -309,10 +332,9 @@ export default function HeaderAndBackground() {
           </div>
         </header>
 
-        <div className="max-w-6xl mx-auto px-4 py-6 w-full">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 py-6 w-full">
           {/* Wrapper Container */}
-                    {/* Wrapper Container */}
-          <div className="bg-[#E1E69D] rounded-2xl md:p-5 lg:p-8 flex flex-col gap-6">
+          <div className="bg-[#E1E69D] rounded-2xl p-4 md:p-5 lg:p-8 flex flex-col gap-4 sm:gap-6">
             
             {/* Welcome Message */}
             <div className="flex flex-col gap-4">
@@ -400,7 +422,7 @@ export default function HeaderAndBackground() {
 
         {/* --- Segmented Pills and Cards --- */}
         <div className="w-full flex-1 bg-transparent">
-          <div className="max-w-6xl mx-auto px-4 pb-12 flex flex-col gap-6">
+          <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 pb-12 flex flex-col gap-6">
             
             {/* Nav Pills Scrollable */}
             <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar items-center">
@@ -416,7 +438,7 @@ export default function HeaderAndBackground() {
               <button onClick={()=>router.push('/admin/volunteer')} className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#C575AD]/80 hover:bg-[#C575AD] text-[#f4f4f4] text-xs md:text-sm font-bold shadow-sm transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
                 Volunteer Tasks
               </button>
-              <button onClick={()=>router.push('/admin/adoption')} className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#689668]/80 hover:bg-[#689668] text-[#f4f4f4] text-xs md:text-sm font-bold shadow-sm transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+              <button onClick={()=>router.push('/admin/adoptions')} className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#689668]/80 hover:bg-[#689668] text-[#f4f4f4] text-xs md:text-sm font-bold shadow-sm transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
                 Adoption Requests
               </button>
             </div>
@@ -435,7 +457,7 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentAnimals.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent animals</div> : recentAnimals.slice(0, 3).map((a,i)=>(
                       <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/profiles/${a.animal_id}`)}>
@@ -473,7 +495,7 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentReports.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent reports</div> : recentReports.slice(0, 3).map((r,i)=>(
                       <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/report/${r.report_id}`)}>
@@ -522,7 +544,7 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentVolunteers.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent volunteers</div> : recentVolunteers.slice(0, 3).map((v,i)=>(
                       <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/volunteer`)}>
@@ -560,16 +582,16 @@ export default function HeaderAndBackground() {
                   </div>
                 </div>
                 {/* Content */}
-                <div className="flex-1 flex flex-col bg-[#FCF9F5]">
+                <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentAdoptions.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent adoption requests</div> : recentAdoptions.slice(0, 3).map((a,i)=>(
-                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/adoption`)}>
+                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/adoptions`)}>
                         <div className="w-[60px] h-[60px] rounded-[14px] overflow-hidden shrink-0 bg-[#689668]/20 shadow-sm flex items-center justify-center text-3xl font-bold text-[#689668]" style={{fontFamily: '"Genty Sans", sans-serif'}}>
                           {a.applicant_name?.[0]?.toUpperCase()}
                         </div>
                         <div className="flex-1 overflow-hidden">
                           <p className="font-bold text-[#3C3333] text-[16px] leading-tight" style={{fontFamily: '"Genty Sans", sans-serif'}}>{a.applicant_name}</p>
-                          <p className={`text-[12px] font-bold mt-1 leading-none ${a.status==='pending'?'text-[#DCB57E]':'text-[#689668]'}`}>{a.status}</p>
+                          <p className={`text-[12px] font-bold mt-1 leading-none ${(String(a.status ?? '')).toLowerCase()==='pending'?'text-[#DCB57E]':'text-[#689668]'}`}>{a.status}</p>
                           <p className="text-[12px] text-[#A69999] font-bold mt-1 leading-none">Added: {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString() : 'Unknown'}</p>
                         </div>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3C3333" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
@@ -581,7 +603,7 @@ export default function HeaderAndBackground() {
                 </div>
                 {/* View All */}
                 <div className="flex flex-col justify-center items-center py-[15px] px-[24px] gap-[10px] w-full mt-auto">
-                  <button onClick={()=>router.push('/admin/adoption')} className="flex h-[40px] py-[8px] px-[16px] items-center justify-center gap-[10px] w-full rounded-[10px] bg-[#E6E6E6] border-[1.5px] border-[#3C3333] text-[#3C3333] text-[15px] font-bold hover:bg-white transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
+                  <button onClick={()=>router.push('/admin/adoptions')} className="flex h-[40px] py-[8px] px-[16px] items-center justify-center gap-[10px] w-full rounded-[10px] bg-[#E6E6E6] border-[1.5px] border-[#3C3333] text-[#3C3333] text-[15px] font-bold hover:bg-white transition" style={{fontFamily: '"Genty Sans", sans-serif'}}>
                     View All Requests
                   </button>
                 </div>

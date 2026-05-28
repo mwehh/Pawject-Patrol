@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const {
       data: { user },
     } = await authClient.auth.getUser();
+    const senderId = user?.id ?? null;
 
     const { data: animalRow } = await supabase
       .from("animal")
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
       try {
         if (user) {
           await notifyUser(user.id, {
+            sender_id: senderId,
             event_type: "adoption_application.created",
             priority: "high",
             title: "Adoption application submitted",
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
       }
 
       await notifyAllAdmins({
-        sender_id: null,
+        sender_id: senderId,
         event_type: "adoption_application.created",
         priority: "high",
         title: "New adoption application submitted",

@@ -541,3 +541,52 @@ export async function publishAdminAdoptionApplicationStatusChangedExternal(param
     },
   });
 }
+
+export async function publishUserAdoptionApplicationStatusChangedExternal(params: {
+  recipientId: string;
+  applicationId: string;
+  animalId: string;
+  animalName?: string | null;
+  oldStatus?: string | null;
+  newStatus?: string | null;
+  notes?: string | null;
+}): Promise<void> {
+  const topicArn = getTopicArn("adoption_status_changed");
+  if (!topicArn) {
+    if (!didWarnMissingConfig) {
+      didWarnMissingConfig = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[sns] Missing SNS_TOPIC_ADOPTION_STATUS_CHANGED_ARN. External notifications are disabled."
+      );
+    }
+    return;
+  }
+
+  const animalLabel = params.animalName?.trim() || `Animal ${params.animalId}`;
+  const oldStatus = params.oldStatus ?? "Pending";
+  const newStatus = params.newStatus ?? "Unknown";
+  const notesPart = params.notes?.trim() ? `\n\nAdmin notes: ${params.notes.trim()}` : "";
+
+  await publishExternal({
+    topicArn,
+    subject: "Pawject Patrol: Adoption application status updated",
+    message: `Your adoption application for ${animalLabel} changed from ${oldStatus} to ${newStatus}.${notesPart}\n\nYou can check updates here: ${absoluteUrl(
+      "/notifications"
+    )}\nApplication ID: ${params.applicationId}`,
+    attributes: {
+      ...baseAttributes({
+        eventType: "adoption_application.status_changed",
+        audience: "user",
+        recipientId: params.recipientId,
+        entityType: "adoption_application",
+        entityId: params.applicationId,
+        priority: "high",
+      }),
+      animal_id: params.animalId,
+      animal_name: params.animalName?.trim() || undefined,
+      old_status: oldStatus,
+      new_status: newStatus,
+    },
+  });
+}
