@@ -100,6 +100,56 @@ function priorityDotClass(priority?: string | null) {
   return "bg-gray-300";
 }
 
+function getCardStyle(entityType?: string | null, title?: string | null) {
+  const type = (entityType || "").toLowerCase();
+  const t = (title || "").toLowerCase();
+
+  if (type === "animal_report" || t.includes("report")) {
+    return {
+      bgClass: "bg-[#BD2424]",
+      borderColor: "border-[#A03535] border-r-black",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 57 78" fill="none" className="w-[124px] h-[124px] -ml-5 mt-5">
+          <path d="M53.6363 63.4323L20.6363 5.68232C19.9167 4.41267 18.8733 3.3566 17.6123 2.62186C16.3514 1.88712 14.9181 1.5 13.4588 1.5C11.9994 1.5 10.5661 1.88712 9.3052 2.62186C8.04428 3.3566 7.00081 4.41267 6.28126 5.68232L-26.7187 63.4323C-27.446 64.6919 -27.8274 66.1214 -27.8242 67.5759C-27.821 69.0304 -27.4333 70.4582 -26.7004 71.7146C-25.9675 72.971 -24.9155 74.0112 -23.651 74.73C-22.3865 75.4487 -20.9544 75.8204 -19.5 75.8073H46.5C47.9475 75.8058 49.3691 75.4236 50.622 74.6989C51.875 73.9742 52.9153 72.9326 53.6384 71.6787C54.3615 70.4248 54.7419 69.0027 54.7416 67.5552C54.7412 66.1077 54.36 64.6859 53.6363 63.4323Z" stroke="black" strokeOpacity="0.4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M13.5 25V47" stroke="black" strokeOpacity="0.4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M13.5 56.5V57" stroke="black" strokeOpacity="0.4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+    };
+  }
+
+  if (type === "volunteer_call" || t.includes("volunteer")) {
+    return {
+      bgClass: "bg-[#5E9BBA]",
+      borderColor: "border-[#5E8EA5] border-r-black",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 59 93" fill="none" className="w-[124px] h-[124px] -ml-5 mt-5">
+          <g opacity="0.6">
+            <path d="M35.75 42.625V23.25C35.75 21.1946 34.9335 19.2233 33.4801 17.7699C32.0267 16.3165 30.0554 15.5 28 15.5C25.9446 15.5 23.9733 16.3165 22.5199 17.7699C21.0665 19.2233 20.25 21.1946 20.25 23.25" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M20.25 38.75V15.5C20.25 13.4446 19.4335 11.4733 17.9801 10.0199C16.5267 8.56652 14.5554 7.75 12.5 7.75C10.4446 7.75 8.47333 8.56652 7.01992 10.0199C5.56652 11.4733 4.75 13.4446 4.75 15.5V23.25" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M4.75 40.6875V23.25C4.75 21.1946 3.93348 19.2233 2.48008 17.7699C1.02667 16.3165 -0.944572 15.5 -3 15.5C-5.05543 15.5 -7.02667 16.3165 -8.48008 17.7699C-9.93348 19.2233 -10.75 21.1946 -10.75 23.25V54.25" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M35.7499 31C35.7499 28.9446 36.5664 26.9733 38.0198 25.5199C39.4732 24.0665 41.4445 23.25 43.4999 23.25C45.5553 23.25 47.5266 24.0665 48.98 25.5199C50.4334 26.9733 51.2499 28.9446 51.2499 31V54.25C51.2499 62.4717 47.9839 70.3567 42.1702 76.1703C36.3566 81.9839 28.4716 85.25 20.2499 85.25H12.4999C1.64991 85.25 -4.93759 81.9175 -10.7113 76.1825L-24.6613 62.2325C-25.9946 60.7559 -26.7089 58.8231 -26.6565 56.8344C-26.604 54.8456 -25.7888 52.9532 -24.3795 51.549C-22.9703 50.1447 -21.075 49.3362 -19.0861 49.2908C-17.0972 49.2453 -15.167 49.9665 -13.6951 51.305L-6.87509 58.125" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          </g>
+        </svg>
+      ),
+    };
+  }
+
+  return {
+    bgClass: "bg-[#DCB57E]",
+    borderColor: "border-[#AA8A5F] border-r-black",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 63 107" fill="none" className="w-[124px] h-[124px] -ml-5 mt-5">
+        <path d="M0.58313 23.0585C0.58313 16.8614 -6.44766 11.9439 -15.021 13.375C-27.6069 15.4704 -33.3582 40.1518 -32.8544 44.5833C-32.4977 47.7175 -25.1637 52.2606 -16.5547 49.0417C-10.9327 46.9373 -7.81637 42.5771 -6.10437 37.8958" stroke="black" strokeOpacity="0.6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M19.6069 23.0585C19.6069 16.8614 26.6377 11.9439 35.2111 13.375C47.797 15.4704 53.5482 40.1518 53.0444 44.5833C52.6878 47.7175 45.3538 52.2606 36.7448 49.0417C31.1228 46.9373 28.4746 42.5771 26.7626 37.8958" stroke="black" strokeOpacity="0.6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M27.3335 62.4167V64.6458" stroke="black" strokeOpacity="0.6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M6.15625 72.4479H12.8438L9.5 75.7917L6.15625 72.4479Z" stroke="black" strokeOpacity="0.6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M-24.294 50.1429C-25.5417 54.961 -26.171 59.9184 -26.1665 64.8955C-26.1665 83.4957 -10.1967 93.625 9.50019 93.625C29.1971 93.625 45.1669 83.4957 45.1669 64.8955C45.1669 60.1652 44.4446 55.0872 42.9689 50.1429M1.76052 23.0273C4.3097 22.5265 6.90231 22.2801 9.50019 22.2917C12.9777 22.2917 16.1877 22.7732 19.1346 23.6559" stroke="black" strokeOpacity="0.6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    )
+  };
+}
+
 function formatMessageText(message: string) {
   return message.replace(
     /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z)?\b/g,
@@ -259,7 +309,7 @@ export default function UserNotificationsPage() {
         router={router}
       />
 
-      <main className="min-h-screen bg-[#E6E6E6]">
+      <main className="min-h-screen bg-[#E1E69D]">
         {/* Navigation Header */}
         <div className="flex items-center justify-between px-2 sm:px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10">
           <div className="w-full max-w-[1200px] mx-auto flex items-center justify-between">
@@ -305,12 +355,12 @@ export default function UserNotificationsPage() {
         </div>
 
         {/* Page Header */}
-        <div className="py-6 sm:py-8 bg-[#E6E6E6]">
+        <div className="py-6 sm:py-8 bg-[#E1E69D]">
           <div className="max-w-5xl mx-auto px-2 sm:px-6">
             <h2
               className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl mb-1 font-bold"
               style={{
-                color: "#C2C876",
+                color: "#E6E6E6",
                 WebkitTextStrokeWidth: ".5px",
                 WebkitTextStrokeColor: "#3C3333",
                 fontFamily: '"Kawaii RT", sans-serif',
@@ -372,78 +422,68 @@ export default function UserNotificationsPage() {
             </div>
           ) : (
             <>
-              <ul className="divide-y divide-gray-200 bg-white rounded-2xl border shadow-lg">
+              <div className="flex flex-col gap-4">
                 {notifications.map((n) => {
                   const dateLabel = formattedDates[n.notification_id] || "";
                   const href = getEntityHref(n);
                   const titleLabel = formatTitle(n);
+                  const cardStyle = getCardStyle(n.entity_type, n.title);
 
                   return (
-                    <li key={n.notification_id} className="p-4 sm:p-5">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div
-                              className="text-sm sm:text-base font-semibold"
-                              style={{
-                                color: "#3C3333",
-                                fontFamily: '"Genty Sans", sans-serif',
-                              }}
-                            >
-                              <span className="inline-flex items-center gap-2 min-w-0">
-                                <span
-                                  className={`h-2.5 w-2.5 rounded-full ${priorityDotClass(n.priority)}`}
-                                  aria-hidden="true"
-                                />
-                                <span className="truncate">{titleLabel}</span>
-                              </span>
-                            </div>
+                    <div key={n.notification_id} className="relative flex bg-white rounded-xl border border-black shadow-[0_2px_4px_rgba(0,0,0,0.05)] overflow-hidden min-h-[140px]">
+                      <div className={`w-16 sm:w-20 ${cardStyle.bgClass} border-r ${cardStyle.borderColor} flex-shrink-0 flex items-start overflow-hidden`}>
+                        {cardStyle.icon}
+                      </div>
+
+                      <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
+                        <div className="pr-8">
+                          <div className="text-sm sm:text-base font-extrabold text-black" style={{ fontFamily: '"Genty Sans", sans-serif' }}>
+                            <span className="inline-flex items-center gap-2 min-w-0">
+                              <span
+                                className={`h-2.5 w-2.5 rounded-full ${priorityDotClass(n.priority)}`}
+                                aria-hidden="true"
+                              />
+                              <span className="truncate">{titleLabel}</span>
+                            </span>
                           </div>
 
                           {dateLabel ? (
-                            <div
-                              className="text-[11px] sm:text-xs whitespace-nowrap self-start sm:self-auto"
-                              style={{
-                                color: "#3C3333",
-                                fontFamily: '"Genty Sans", sans-serif',
-                              }}
-                            >
+                            <div className="text-[10px] sm:text-xs text-gray-500 mt-1 mb-3" style={{ fontFamily: '"Genty Sans", sans-serif' }}>
                               {dateLabel}
                             </div>
-                          ) : null}
+                          ) : <div className="mt-4" />}
+
+                          {n.message && (
+                            <div className="text-[11px] sm:text-xs text-black font-semibold mb-6 leading-relaxed" style={{ fontFamily: '"Genty Sans", sans-serif' }}>
+                              {formatMessageText(n.message)}
+                            </div>
+                          )}
                         </div>
 
-                        {n.message ? (
-                          <div
-                            className="text-xs sm:text-sm mt-2"
-                            style={{
-                              color: "#3C3333",
-                              fontFamily: '"Genty Sans", sans-serif',
-                            }}
-                          >
-                            {formatMessageText(n.message)}
-                          </div>
-                        ) : null}
-
-                        {href ? (
-                          <div className="mt-3">
+                        <div className="mt-auto">
+                          {href ? (
                             <Link
                               href={href}
-                              className="inline-flex items-center text-xs sm:text-sm underline"
                               style={{
-                                color: "#3C3333",
+                                color: "rgba(0, 0, 0, 0.60)",
+                                textAlign: "center",
                                 fontFamily: '"Genty Sans", sans-serif',
+                                fontSize: "13px",
+                                fontStyle: "normal",
+                                fontWeight: 500,
+                                lineHeight: "normal",
                               }}
+                              className="uppercase hover:text-black hover:underline transition-all"
                             >
-                              View related item
+                              VIEW ITEM
                             </Link>
-                          </div>
-                        ) : null}
+                          ) : <div className="h-4" />}
+                        </div>
                       </div>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
 
               {totalPages > 1 ? (
                 <div className="mt-4">

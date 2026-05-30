@@ -195,11 +195,26 @@ export default function HeaderAndBackground() {
         .select("*", { count: "exact", head: true })
         .eq("status", "Pending");
 
-      const { data: recentAdoptionsData } = await supabase
+      // Prioritize Pending applications first, then backfill with latest non-pending
+      const { data: pendingData } = await supabase
         .from("adoption_applications")
         .select("id, applicant_name, status, submitted_at")
+        .eq("status", "Pending")
         .order("submitted_at", { ascending: false })
         .limit(4);
+
+      let recentAdoptionsData = pendingData || [];
+      if ((recentAdoptionsData?.length || 0) < 4) {
+        const remaining = 4 - (recentAdoptionsData?.length || 0);
+        const { data: otherData } = await supabase
+          .from("adoption_applications")
+          .select("id, applicant_name, status, submitted_at")
+          .neq("status", "Pending")
+          .order("submitted_at", { ascending: false })
+          .limit(remaining);
+
+        recentAdoptionsData = [...(recentAdoptionsData || []), ...(otherData || [])];
+      }
 
       // Fetch recent entries for quick preview (latest 3)
       const { data: recentAnimalsData } = await supabase

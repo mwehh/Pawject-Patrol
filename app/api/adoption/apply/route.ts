@@ -18,6 +18,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    const animalId = body?.animal_id;
+    if (animalId === null || animalId === undefined || String(animalId).trim() === "") {
+      return NextResponse.json({ message: "Missing animal_id" }, { status: 400 });
+    }
+
     const supabase = createSupabaseClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
     const authClient = await createClient();
     const {
@@ -27,15 +32,35 @@ export async function POST(request: Request) {
 
     const { data: animalRow } = await supabase
       .from("animal")
-      .select("animal_name")
-      .eq("animal_id", body.animal_id)
+      .select("animal_name, animal_status")
+      .eq("animal_id", animalId)
       .maybeSingle();
 
+    if (!animalRow) {
+      return NextResponse.json({ message: "Animal not found" }, { status: 404 });
+    }
+
+    const animalStatus = (animalRow as any)?.animal_status?.toString().trim() || null;
+    const normalizedStatus = animalStatus?.toLowerCase() ?? null;
+
+    if (normalizedStatus !== "available for adoption") {
+      if (normalizedStatus === "adopted") {
+        return NextResponse.json({ message: "This animal has already been adopted" }, { status: 409 });
+      }
+      return NextResponse.json(
+        {
+          message: "This animal is not available for adoption",
+          animal_status: animalStatus,
+        },
+        { status: 409 },
+      );
+    }
+
     const animalName = animalRow?.animal_name?.trim() || null;
-    const animalLabel = animalName || `Animal ${body.animal_id}`;
+    const animalLabel = animalName || `Animal ${animalId}`;
 
     const insert = {
-      animal_id: body.animal_id,
+      animal_id: animalId,
       applicant_name: body.applicant_name,
       applicant_email: body.applicant_email,
       applicant_phone: body.applicant_phone,
@@ -89,7 +114,7 @@ export async function POST(request: Request) {
 
       await publishAdminAdoptionApplicationSubmittedExternal({
         applicationId,
-        animalId: String(body.animal_id),
+        animalId: String(animalId),
         animalName,
         applicantName,
       });

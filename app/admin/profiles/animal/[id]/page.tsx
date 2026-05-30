@@ -58,6 +58,36 @@ function getThemeColor(theme: string | null | undefined): string {
   return themeMap[theme.toLowerCase()] || "#689668";
 }
 
+function getStatusBadgeStyle(status: string | null | undefined) {
+  const normalized = (status || "").trim().toLowerCase();
+
+  if (normalized === "available for adoption") {
+    return { backgroundColor: "rgba(255, 255, 255, 0.22)", color: "#FFF" };
+  }
+
+  if (normalized === "adopted") {
+    return { backgroundColor: "#E6E6E6", color: "#3C3333" };
+  }
+
+  if (normalized === "in campus") {
+    return { backgroundColor: "#5E9BBA", color: "#FFF" };
+  }
+
+  if (normalized === "under treatment") {
+    return { backgroundColor: "#C575AD", color: "#FFF" };
+  }
+
+  if (normalized === "lost/missing") {
+    return { backgroundColor: "#DC2626", color: "#FFF" };
+  }
+
+  if (normalized === "unknown" || !normalized) {
+    return { backgroundColor: "rgba(255, 255, 255, 0.18)", color: "#FFF" };
+  }
+
+  return { backgroundColor: "#8D52A7", color: "#FFF" };
+}
+
 export default function AdminAnimalDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -293,14 +323,14 @@ export default function AdminAnimalDetailPage() {
                 : "—"}
             </p>
             <p
-                  className="flex w-fit justify-center items-center gap-[10px] py-[4px] px-[10px] rounded-full bg-white/20 text-xs uppercase mt-2"
-                  style={{
-                    color: "#FFF",
-                    fontFamily: '"Genty Sans", sans-serif',
-                  }}
-                >
-                  IN CAMPUS
-                </p>
+              className="flex w-fit justify-center items-center gap-[10px] py-[4px] px-[10px] rounded-full text-xs uppercase mt-2"
+              style={{
+                ...getStatusBadgeStyle(animal.animal_status),
+                fontFamily: '"Genty Sans", sans-serif',
+              }}
+            >
+              {animal.animal_status || "Unknown"}
+            </p>
           </div>
 
           {/* Right Side: Edit & Delete Icons (Aligned to Bottom Right) */}

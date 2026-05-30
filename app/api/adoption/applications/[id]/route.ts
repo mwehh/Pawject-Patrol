@@ -133,9 +133,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { data: animalRow } = await supabase
       .from("animal")
-      .select("animal_name")
+      .select("animal_name, animal_status")
       .eq("animal_id", application.animal_id)
       .maybeSingle();
+
+    if (!animalRow) return json(404, { ok: false, error: "Animal not found" });
+
+    const animalStatus = (animalRow as any)?.animal_status?.toString().trim() || null;
+    const normalizedStatus = animalStatus?.toLowerCase() ?? null;
+
+    if (status === "Accepted" && normalizedStatus !== "available for adoption") {
+      const message =
+        normalizedStatus === "adopted"
+          ? "Cannot accept this application because the animal is already adopted"
+          : "Cannot accept this application because the animal is not available for adoption";
+      return json(409, { ok: false, error: message, animal_status: animalStatus });
+    }
 
     const animalName = animalRow?.animal_name?.trim() || null;
     const animalLabel = animalName || `Animal ${application.animal_id}`;

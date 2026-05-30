@@ -34,8 +34,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, userName, userEma
 								<path d="M20.42 4.58C19.92 4.08 19.32 3.68 18.67 3.4C18.01 3.13 17.31 2.99 16.6 2.99C15.89 2.99 15.18 3.13 14.52 3.4C13.87 3.68 13.27 4.08 12.77 4.58L12 5.36L11.23 4.58C10.73 4.08 10.13 3.68 9.48 3.4C8.82 3.13 8.12 2.99 7.41 2.99C6.7 2.99 5.99 3.13 5.33 3.4C4.68 3.68 4.08 4.08 3.58 4.58C1.46 6.7 1.33 10.28 4 13L12 21L20 13C22.67 10.28 22.54 6.7 20.42 4.58Z" stroke="#8D52A7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 							</svg>
 						),
-					},
-					{
+					},					{
 						label: "Volunteer Requests",
 						href: "/admin/volunteer",
 						icon: (
@@ -44,8 +43,53 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, userName, userEma
 							</svg>
 						),
 					},
+					{
+						label: "Adoption Requests",
+						href: "/admin/adoptions",
+						icon: (
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+								<path d="M8 7H16" stroke="#689668" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+								<path d="M8 11H16" stroke="#689668" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+								<path d="M8 15H13" stroke="#689668" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+								<path d="M6 3H18C19.1046 3 20 3.89543 20 5V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V5C4 3.89543 4.89543 3 6 3Z" stroke="#689668" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+						),
+					},
+
 				]
-			: [
+			: variant === "user"
+				? [
+					{
+						label: "Animal Catalogue",
+						href: "/catalog",
+						icon: (
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none">
+								<path d="M3 9L12 2L21 9V20C21 20.53 20.79 21.04 20.41 21.41C20.04 21.79 19.53 22 19 22H5C4.47 22 3.96 21.79 3.59 21.41C3.21 21.04 3 20.53 3 20V9Z" stroke="#3C3333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+								<path d="M9 22V12H15V22" stroke="#3C3333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+						),
+					},
+					{
+						label: "Report Animal",
+						href: "/form",
+						icon: (
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none">
+								<path d="M20.42 4.58C19.92 4.08 19.32 3.68 18.67 3.4C18.01 3.13 17.31 2.99 16.6 2.99C15.89 2.99 15.18 3.13 14.52 3.4C13.87 3.68 13.27 4.08 12.77 4.58L12 5.36L11.23 4.58C10.73 4.08 10.13 3.68 9.48 3.4C8.82 3.13 8.12 2.99 7.41 2.99C6.7 2.99 5.99 3.13 5.33 3.4C4.68 3.68 4.08 4.08 3.58 4.58C1.46 6.7 1.33 10.28 4 13L12 21L20 13C22.67 10.28 22.54 6.7 20.42 4.58Z" stroke="#8D52A7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+							</svg>
+						),
+					},
+					{
+						label: "Task Volunteer",
+						href: "/volunteer",
+						icon: (
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none">
+								<g clipPath="url(#clip0)"><path d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22Z" stroke="#C575AD" strokeWidth="3" /><path d="M12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18Z" stroke="#C575AD" strokeWidth="3" /><path d="M12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14Z" stroke="#C575AD" strokeWidth="3" /></g>
+							</svg>
+						),
+					},
+
+						]
+				: [
 					{
 						label: "Animal Catalogue",
 						href: "/catalog",
@@ -262,26 +306,12 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, userName, userEma
 									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
 										<path d="M22 11.0799V11.9999C21.9988 14.1563 21.3005 16.2545 20.0093 17.9817C18.7182 19.7088 16.9033 20.9723 14.8354 21.5838C12.7674 22.1952 10.5573 22.1218 8.53447 21.3744C6.51168 20.6271 4.78465 19.246 3.61096 17.4369C2.43727 15.6279 1.87979 13.4879 2.02168 11.3362C2.16356 9.18443 2.99721 7.13619 4.39828 5.49694C5.79935 3.85768 7.69279 2.71525 9.79619 2.24001C11.8996 1.76477 14.1003 1.9822 16.07 2.85986" stroke="#689668" strokeWidth="2" />
 										<path d="M22 4L12 14.01L9 11.01" stroke="#689668" strokeWidth="2" />
-									</svg>
-								),
-								onClick: () => {
-									setSidebarOpen(false);
-									router.push("/about-us");
-									setTimeout(() => {
-										if (typeof window !== 'undefined') {
-											const scrollToSection = () => {
-												const el = document.getElementById("goals");
-												if (el) {
-													el.scrollIntoView({ behavior: "smooth", block: "start" });
-												}
-											};
-											setTimeout(scrollToSection, 400);
-										}
-									}, 400);
-								},
-							},
-							{
-								label: "Notifications",
+                                    </svg>
+
+						),
+					},
+					{
+						label: "Notifications",
 								icon: (
 									<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
 										<path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 21 3 23 3 23H21C21 23 18 21 18 8Z" stroke="#5E9BBA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -305,7 +335,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, userName, userEma
 									router.push("/catalog?pawfectmatch=true");
 								},
 							},
-							].map((item) => (
+							].filter((item) => !(variant === "admin" && item.label === "Pawfect Match") && !(variant === "guest" && item.label === "Notifications")).map((item) => (
 								<button
 									key={item.label}
 									onClick={item.onClick ? item.onClick : () => {
