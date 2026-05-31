@@ -99,6 +99,31 @@ function CatalogPageInner() {
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [pawfectMatchOpen, setPawfectMatchOpen] = useState(false);
 
+  const handleAuthButtonClick = async () => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: adminData, error } = await supabase
+        .from("admin")
+        .select("auth_id")
+        .eq("auth_id", user.id)
+        .single();
+
+      if (adminData && !error) {
+        await supabase.auth.signOut();
+        router.replace("/admin/login");
+        return;
+      }
+    }
+
+    await supabase.auth.signOut();
+    router.replace("/login");
+  };
+
   useEffect(() => {
     if (searchParams?.get("pawfectmatch") === "true") {
       setPawfectMatchOpen(true);
@@ -281,35 +306,20 @@ function CatalogPageInner() {
                 {isAuthenticated ? <UserNotificationsBell /> : null}
                 {/* Login/Logout Button */}
                 <button
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
-                  onClick={async () => {
-                    // If not authenticated, go to /login
-                    if (!isAuthenticated) {
-                      router.push("/login");
-                      return;
-                    }
-                    // Check if admin by querying admin table
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user) {
-                      const { data: adminData, error } = await supabase
-                        .from('admin')
-                        .select('auth_id')
-                        .eq('auth_id', user.id)
-                        .single();
-                      if (adminData && !error) {
-                        // Admin: logout and go to /admin/login
-                        await supabase.auth.signOut();
-                        router.replace("/admin/login");
-                        return;
-                      }
-                    }
-                    // User: logout and go to /login
-                    await supabase.auth.signOut();
-                    router.replace("/login");
-                  }}
+                  className="hidden md:flex items-center gap-2 bg-[#8D52A7] hover:bg-[#7B4692] text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+                  style={{ fontFamily: '"Genty Sans", sans-serif' }}
+                  onClick={handleAuthButtonClick}
                   aria-label={isAuthenticated ? "Logout" : "Login"}
                 >
-                    <LogIn className="w-6 h-6 text-gray-800" />
+                  <span>{isAuthenticated ? "Logout" : "Login"}</span>
+                  <LogIn className="w-4 h-4 text-white" />
+                </button>
+                <button
+                  className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+                  onClick={handleAuthButtonClick}
+                  aria-label={isAuthenticated ? "Logout" : "Login"}
+                >
+                  <LogIn className="w-6 h-6 text-gray-800" />
                 </button>
               </div>
             </div>

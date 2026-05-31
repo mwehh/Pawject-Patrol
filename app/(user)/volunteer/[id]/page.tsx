@@ -166,6 +166,7 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
         
         const status = await getUserResponseStatus(unwrappedParams.id);
         setUserStatus(status);
+
       }
 
       setLoading(false);
@@ -369,7 +370,9 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                             borderStyle: 'solid',
                           }}
                         >
-                          {userStatus ? 'Joined' : (volunteer.call_status || 'Unknown')}
+                          {volunteer.call_status?.toLowerCase() === 'ongoing'
+                            ? 'Ongoing'
+                            : (userStatus ? 'Joined' : (volunteer.call_status || 'Unknown'))}
                         </div>
                       </div>
                     </div>
@@ -470,14 +473,24 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                             >
                               Already Joined
                             </button>
-                            <button
-                              onClick={handleLeaveClick}
-                              disabled={joining}
-                              className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-transparent text-[#6B4A6B] hover:bg-[#F3F4F6] transition-colors disabled:opacity-50"
-                              style={{ fontFamily: 'Genty Sans, sans-serif', fontWeight: 500, boxSizing: 'border-box', textAlign: 'center' }}
-                            >
-                              {joining ? 'Leaving...' : 'Leave Opportunity'}
-                            </button>
+                            {volunteer?.call_status?.toLowerCase() === 'ongoing' ? (
+                              <button
+                                disabled
+                                className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-[#9CA3AF] text-white opacity-50 cursor-not-allowed"
+                                style={{ fontFamily: 'Genty Sans, sans-serif', fontWeight: 500, boxSizing: 'border-box', textAlign: 'center' }}
+                              >
+                                This Opportunity is Ongoing
+                              </button>
+                            ) : (
+                              <button
+                                onClick={handleLeaveClick}
+                                disabled={joining}
+                                className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-transparent text-[#6B4A6B] hover:bg-[#F3F4F6] transition-colors disabled:opacity-50"
+                                style={{ fontFamily: 'Genty Sans, sans-serif', fontWeight: 500, boxSizing: 'border-box', textAlign: 'center' }}
+                              >
+                                {joining ? 'Leaving...' : 'Leave Opportunity'}
+                              </button>
+                            )}
                           </>
                         ) : volunteer?.call_status?.toLowerCase() === 'active' && (volunteer?.capacity ?? 0) && signupCount >= (volunteer?.capacity ?? 0) ? (
                           <button

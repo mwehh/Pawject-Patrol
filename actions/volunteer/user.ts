@@ -140,6 +140,16 @@ export async function getUserResponseStatus(callId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
+    // Fetch call status as authoritative for 'ongoing' override
+    const { data: callRow } = await supabase
+      .from('volunteer_call')
+      .select('call_status')
+      .eq('call_id', callId)
+      .maybeSingle();
+
+    const callStatus = (callRow as any)?.call_status ? String((callRow as any).call_status).toLowerCase() : null;
+    if (callStatus === 'ongoing') return 'Ongoing';
+
     const { data } = await supabase
       .from('volunteer_response')
       .select('response_status')
@@ -190,6 +200,18 @@ export async function leaveVolunteerCall(callId: string) {
 
     if (checkError || !existing) {
       return { success: false, error: 'You have not joined this opportunity' };
+    }
+
+    // Prevent leaving if the call is already ongoing
+    const { data: callStatusRow } = await supabase
+      .from('volunteer_call')
+      .select('call_status')
+      .eq('call_id', callId)
+      .maybeSingle();
+
+    const callStatus = (callStatusRow as any)?.call_status ? String((callStatusRow as any).call_status).toLowerCase() : null;
+    if (callStatus === 'ongoing') {
+      return { success: false, error: 'This opportunity is ongoing' };
     }
 
     // Delete the response
@@ -274,7 +296,7 @@ export async function leaveVolunteerCall(callId: string) {
   }
 }
 
-// Send reminders to users about volunteer calls starting within the next 24 hours
+// Send reminders to users about joined volunteer calls before they start.
 export async function sendUpcomingCallReminders() {
   try {
     const supabase = await getSupabase();
@@ -308,10 +330,11 @@ export async function sendUpcomingCallReminders() {
     }
 
     const now = new Date();
-    const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const fifteenMinutes = 15 * 60 * 1000;
     let notificationsSent = 0;
 
-    // Check each call for upcoming starts within 24 hours
+    // Check each joined call for the 24-hour and 15-minute reminder windows.
     for (const call of calls) {
       if (!call.call_starttime || call.call_status !== 'Active' && call.call_status !== 'Ongoing') {
         continue;
@@ -319,31 +342,49 @@ export async function sendUpcomingCallReminders() {
 
       const startTime = new Date(call.call_starttime);
       const timeUntilStart = startTime.getTime() - now.getTime();
-      const hoursUntilStart = timeUntilStart / (60 * 60 * 1000);
 
-      // Send notification if call starts between now and 24 hours from now
-      if (timeUntilStart > 0 && timeUntilStart <= 24 * 60 * 60 * 1000) {
+      if (timeUntilStart <= 0) {
+        continue;
+      }
+
+      const reminderWindows = [
+        {
+          eventType: 'volunteer_call.upcoming_reminder',
+          title: 'Upcoming volunteer call',
+          message: `Reminder: "${call.call_title}" starts in about 24 hours.`,
+          minAge: fifteenMinutes,
+          maxAge: twentyFourHours,
+        },
+        {
+          eventType: 'volunteer_call.starting_soon',
+          title: 'Volunteer call starts soon',
+          message: `Reminder: "${call.call_title}" starts in about 15 minutes.`,
+          minAge: 0,
+          maxAge: fifteenMinutes,
+        },
+      ];
+
+      for (const window of reminderWindows) {
+        if (timeUntilStart <= window.minAge || timeUntilStart > window.maxAge) {
+          continue;
+        }
+
         try {
-          // Check if we already sent a reminder notification for this call
           const { data: existingNotifications } = await supabase
             .from('notifications')
             .select('notification_id')
             .eq('recipient_id', user.id)
             .eq('entity_id', call.call_id)
-            .eq('event_type', 'volunteer_call.upcoming_reminder')
+            .eq('event_type', window.eventType)
             .maybeSingle();
 
-          // Only send if we haven't already sent a reminder for this call
           if (!existingNotifications) {
-            const minutesUntilStart = Math.floor(timeUntilStart / (60 * 1000));
-            const hourText = hoursUntilStart < 2 ? `${minutesUntilStart} minutes` : `${Math.floor(hoursUntilStart)} hours`;
-            
             await notifyUser(user.id, {
               sender_id: null,
-              event_type: 'volunteer_call.upcoming_reminder',
+              event_type: window.eventType,
               priority: 'high',
-              title: 'Upcoming volunteer call',
-              message: `Reminder: "${call.call_title}" starts in ${hourText}.`,
+              title: window.title,
+              message: window.message,
               entity_type: 'volunteer_call',
               entity_id: String(call.call_id),
             });
@@ -351,7 +392,7 @@ export async function sendUpcomingCallReminders() {
             notificationsSent++;
           }
         } catch (e) {
-          console.error(`Failed to send reminder for call ${call.call_id}:`, e);
+          console.error(`Failed to send ${window.eventType} reminder for call ${call.call_id}:`, e);
         }
       }
     }

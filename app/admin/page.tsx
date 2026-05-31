@@ -368,7 +368,8 @@ export default function HeaderAndBackground() {
                   fontFamily: '"Kawaii RT", sans-serif',
                 }}
               >
-                Pawject Patrol<br className="hidden md:block"/>Admin Dashboard
+                <span className="block">Pawject Patrol</span>
+                <span className="block">Admin Dashboard</span>
               </h1>
 
               <p
@@ -440,7 +441,7 @@ export default function HeaderAndBackground() {
           <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6 pb-12 flex flex-col gap-6">
             
             {/* Nav Pills Scrollable */}
-            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar items-center">
+            <div className="flex flex-wrap gap-3 pb-2 items-center">
               <button className="whitespace-nowrap px-4 py-2 rounded-lg bg-[#3C3333] text-[#f8f9fa] text-xs md:text-sm font-bold shadow-sm" style={{fontFamily: '"Genty Sans", sans-serif'}}>
                 Overview
               </button>
@@ -475,7 +476,7 @@ export default function HeaderAndBackground() {
                 <div className="flex-1 flex flex-col bg-[#FCF9F5] min-h-0">
                   <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto no-scrollbar">
                     {recentAnimals.length === 0 ? <div className="text-sm text-gray-500 text-center py-4">No recent animals</div> : recentAnimals.slice(0, 3).map((a,i)=>(
-                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/profiles/${a.animal_id}`)}>
+                      <div key={i} className="flex items-center gap-4 w-full bg-transparent cursor-pointer group" onClick={()=>router.push(`/admin/profiles/animal/${a.animal_id}`)}>
                         <div className="w-[60px] h-[60px] rounded-[14px] overflow-hidden shrink-0 bg-gray-200 shadow-sm">
                           {a.animal_photo ? <img src={a.animal_photo} className="w-full h-full object-cover"/> : null}
                         </div>

@@ -147,6 +147,7 @@ function UserVolunteerPage() {
         }
       }
       setUserStatuses(statuses);
+
       setLoading(false);
     };
 

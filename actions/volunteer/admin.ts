@@ -156,6 +156,154 @@ function buildVolunteerUpdateMessage(
   return `Volunteer call${titlePart} was updated. ${changes.join("; ")}.`;
 }
 
+type VolunteerReminderWindow = {
+  eventType: string;
+  title: string;
+  message: (callTitle: string | null | undefined) => string;
+  minAge: number;
+  maxAge: number;
+};
+
+const VOLUNTEER_REMINDER_WINDOWS: VolunteerReminderWindow[] = [
+  {
+    eventType: 'volunteer_call.upcoming_reminder',
+    title: 'Upcoming volunteer call',
+    message: (callTitle) => `Reminder: "${callTitle || 'Volunteer call'}" starts in about 24 hours.`,
+    minAge: 15 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+  {
+    eventType: 'volunteer_call.starting_soon',
+    title: 'Volunteer call starts soon',
+    message: (callTitle) => `Reminder: "${callTitle || 'Volunteer call'}" starts in about 15 minutes.`,
+    minAge: 0,
+    maxAge: 15 * 60 * 1000,
+  },
+];
+
+async function getAdminRecipientIds(): Promise<string[]> {
+  try {
+    const serviceClient = getServiceClient();
+    const { data, error } = await serviceClient
+      .from('admin')
+      .select('auth_id')
+      .not('auth_id', 'is', null);
+
+    if (error) {
+      console.error('[getAdminRecipientIds] error:', error);
+      return [];
+    }
+
+    return (data || [])
+      .map((row: { auth_id: string | null }) => row.auth_id)
+      .filter((authId): authId is string => Boolean(authId));
+  } catch (e) {
+    console.error('[getAdminRecipientIds] exception:', e);
+    return [];
+  }
+}
+
+async function notifyRecipientsIfMissing(
+  recipientIds: string[],
+  input: {
+    sender_id?: string | null;
+    event_type: string;
+    priority?: string | null;
+    title: string;
+    message: string;
+    entity_type: string;
+    entity_id: string;
+  },
+) {
+  if (recipientIds.length === 0) {
+    return 0;
+  }
+
+  const table = process.env.NOTIFICATION_TABLE_NAME || 'notifications';
+  const serviceClient = getServiceClient();
+
+  const { data: existing, error } = await serviceClient
+    .from(table)
+    .select('recipient_id')
+    .eq('entity_type', input.entity_type)
+    .eq('entity_id', input.entity_id)
+    .eq('event_type', input.event_type)
+    .in('recipient_id', recipientIds);
+
+  if (error) {
+    throw new Error(`Failed to check existing notifications: ${error.message}`);
+  }
+
+  const existingRecipientIds = new Set(
+    (existing || [])
+      .map((row: { recipient_id: string | null }) => row.recipient_id)
+      .filter((recipientId): recipientId is string => Boolean(recipientId)),
+  );
+
+  const targetRecipientIds = recipientIds.filter((recipientId) => !existingRecipientIds.has(recipientId));
+
+  if (targetRecipientIds.length === 0) {
+    return 0;
+  }
+
+  await notifyUsers(targetRecipientIds, input);
+  return targetRecipientIds.length;
+}
+
+async function sendVolunteerCallRemindersForCall(callId: string): Promise<number> {
+  try {
+    const serviceClient = getServiceClient();
+    const { data: call, error } = await serviceClient
+      .from('volunteer_call')
+      .select('call_id, call_title, call_starttime, call_status')
+      .eq('call_id', callId)
+      .maybeSingle();
+
+    if (error || !call || !call.call_starttime) {
+      return 0;
+    }
+
+    const status = String(call.call_status || '').toLowerCase();
+    if (status === 'cancelled' || status === 'completed' || status === 'deleted') {
+      return 0;
+    }
+
+    const startTime = new Date(call.call_starttime);
+    const timeUntilStart = startTime.getTime() - Date.now();
+    if (timeUntilStart <= 0) {
+      return 0;
+    }
+
+    let notificationsSent = 0;
+    const joinedUserIds = await getUsersJoinedCall(callId);
+    const adminRecipientIds = await getAdminRecipientIds();
+
+    for (const window of VOLUNTEER_REMINDER_WINDOWS) {
+      if (timeUntilStart > window.maxAge || timeUntilStart <= window.minAge) {
+        continue;
+      }
+
+      const payload = {
+        sender_id: null,
+        event_type: window.eventType,
+        priority: 'high',
+        title: window.title,
+        message: window.message(call.call_title),
+        entity_type: 'volunteer_call',
+        entity_id: String(call.call_id),
+      };
+
+      notificationsSent += await notifyRecipientsIfMissing(joinedUserIds, payload);
+      notificationsSent += await notifyRecipientsIfMissing(adminRecipientIds, payload);
+    }
+
+    return notificationsSent;
+  } catch (e) {
+    console.error('[sendVolunteerCallRemindersForCall] error:', e);
+    return 0;
+  }
+}
+
 // Helper function to get Supabase client
 async function getSupabase() {
   return await createClient();
@@ -262,6 +410,32 @@ export async function syncVolunteerCallStatus(callId: string) {
           .from('volunteer_call')
           .update({ call_status: 'Ongoing' })
           .eq('call_id', callId);
+
+        try {
+          const joinedUserIds = await getUsersJoinedCall(callId);
+          if (joinedUserIds.length > 0) {
+            await notifyUsers(joinedUserIds, {
+              sender_id: null,
+              event_type: 'volunteer_call.ongoing',
+              priority: 'high',
+              title: 'Volunteer call started',
+              message: 'Your joined volunteer call is now ongoing.',
+              entity_type: 'volunteer_call',
+              entity_id: String(callId),
+            });
+          }
+          await notifyAllAdmins({
+            sender_id: null,
+            event_type: 'volunteer_call.ongoing',
+            priority: 'high',
+            title: 'Volunteer call started',
+            message: `Volunteer call${call.call_title ? `: ${call.call_title}` : ''} is now ongoing.`,
+            entity_type: 'volunteer_call',
+            entity_id: String(callId),
+          });
+        } catch (e) {
+          console.error('Failed to notify ongoing volunteer call status:', e);
+        }
       }
       return;
     }
@@ -275,6 +449,32 @@ export async function syncVolunteerCallStatus(callId: string) {
             .from('volunteer_call')
             .update({ call_status: 'Filled' })
             .eq('call_id', callId);
+
+          try {
+            const joinedUserIds = await getUsersJoinedCall(callId);
+            if (joinedUserIds.length > 0) {
+              await notifyUsers(joinedUserIds, {
+                sender_id: null,
+                event_type: 'volunteer_call.filled',
+                priority: 'high',
+                title: 'Volunteer call filled',
+                message: 'Your joined volunteer call has reached full capacity.',
+                entity_type: 'volunteer_call',
+                entity_id: String(callId),
+              });
+            }
+            await notifyAllAdmins({
+              sender_id: null,
+              event_type: 'volunteer_call.filled',
+              priority: 'high',
+              title: 'Volunteer call filled',
+              message: `Volunteer call${call.call_title ? `: ${call.call_title}` : ''} reached full capacity.`,
+              entity_type: 'volunteer_call',
+              entity_id: String(callId),
+            });
+          } catch (e) {
+            console.error('Failed to notify filled volunteer call status:', e);
+          }
         }
       } else {
         // Has available spots -> mark as Active
@@ -297,6 +497,8 @@ export async function syncVolunteerCallStatus(callId: string) {
   } catch (e) {
     console.error('syncVolunteerCallStatus error:', e);
   }
+
+  await sendVolunteerCallRemindersForCall(callId);
 }
 
 // Function to sync all volunteer call statuses
@@ -339,6 +541,8 @@ export async function listVolunteerCalls(opts?: { search?: string; limit?: numbe
       console.error("listVolunteerCalls error:", error);
       return [];
     }
+
+    await Promise.all((data || []).map((call: any) => call?.call_id ? sendVolunteerCallRemindersForCall(String(call.call_id)) : Promise.resolve()));
     // Optionally, you can still add joined_count if needed, but without service role:
     // If you want to remove all extra logic, just return data;
     return data || [];
@@ -373,6 +577,7 @@ export async function getVolunteerCall(id?: string) {
     }
 
     // Return the volunteer call data
+    await sendVolunteerCallRemindersForCall(id);
     return data as VolunteerCall;
   } 
   // Catch unexpected errors
@@ -829,22 +1034,35 @@ export async function uncancelAction(formData: FormData): Promise<void> {
         revalidatePath(`/admin/volunteer/${id}`);
       } catch (_) {}
 
-      // Notify admins (best-effort)
+      // Notify admins and joined users (best-effort)
       try {
         const newStatus = 'Active';
         if ((oldStatus ?? null) !== newStatus) {
           await notifyAllAdmins({
             sender_id: user?.id ?? null,
-            event_type: 'volunteer_call.cancelled',
+            event_type: 'volunteer_call.uncancelled',
             priority: 'high',
-            title: 'Volunteer call status changed',
+            title: 'Volunteer call reopened',
             message: buildStatusChangeMessage('Volunteer call', callTitle, oldStatus, newStatus),
             entity_type: 'volunteer_call',
             entity_id: String(id),
           });
+
+          const joinedUserIds = await getUsersJoinedCall(id);
+          if (joinedUserIds.length > 0) {
+            await notifyUsers(joinedUserIds, {
+              sender_id: user?.id ?? null,
+              event_type: 'volunteer_call.uncancelled',
+              priority: 'high',
+              title: 'Volunteer call reopened',
+              message: `The volunteer call${callTitle ? ` "${callTitle}"` : ''} has been reopened.`,
+              entity_type: 'volunteer_call',
+              entity_id: String(id),
+            });
+          }
         }
       } catch (e) {
-        console.error('Failed to notify admins (volunteer_call.cancelled):', e);
+        console.error('Failed to notify admins (volunteer_call.uncancelled):', e);
       }
     }
 
@@ -905,7 +1123,9 @@ export async function deleteAction(formData: FormData): Promise<void> {
         // Log error if occurred
         if (error) console.error("deleteAction (service) error:", error);
         else {
-          // Notify admins (best-effort)
+          const joinedUserIds = await getUsersJoinedCall(id);
+
+          // Notify admins and joined users (best-effort)
           try {
             await notifyAllAdmins({
               sender_id: user?.id ?? null,
@@ -916,6 +1136,18 @@ export async function deleteAction(formData: FormData): Promise<void> {
               entity_type: 'volunteer_call',
               entity_id: String(id),
             });
+
+            if (joinedUserIds.length > 0) {
+              await notifyUsers(joinedUserIds, {
+                sender_id: user?.id ?? null,
+                event_type: 'volunteer_call.deleted',
+                priority: 'high',
+                title: 'Volunteer call deleted',
+                message: `Volunteer call${callTitle ? `: ${callTitle}` : ''} has been deleted.`,
+                entity_type: 'volunteer_call',
+                entity_id: String(id),
+              });
+            }
           } catch (e) {
             console.error('Failed to notify admins (volunteer_call.deleted):', e);
           }
@@ -948,7 +1180,9 @@ export async function deleteAction(formData: FormData): Promise<void> {
       // Log error if occurred
       if (error) console.error("deleteAction error:", error);
       else {
-        // Notify admins (best-effort)
+        const joinedUserIds = await getUsersJoinedCall(id);
+
+        // Notify admins and joined users (best-effort)
         try {
           await notifyAllAdmins({
             sender_id: user?.id ?? null,
@@ -959,6 +1193,18 @@ export async function deleteAction(formData: FormData): Promise<void> {
             entity_type: 'volunteer_call',
             entity_id: String(id),
           });
+
+          if (joinedUserIds.length > 0) {
+            await notifyUsers(joinedUserIds, {
+              sender_id: user?.id ?? null,
+              event_type: 'volunteer_call.deleted',
+              priority: 'high',
+              title: 'Volunteer call deleted',
+              message: `Volunteer call${callTitle ? `: ${callTitle}` : ''} has been deleted.`,
+              entity_type: 'volunteer_call',
+              entity_id: String(id),
+            });
+          }
         } catch (e) {
           console.error('Failed to notify admins (volunteer_call.deleted):', e);
         }
@@ -989,10 +1235,25 @@ export async function deleteVolunteerCall(id?: string) {
 
     // Use regular Supabase client
     const supabase = await getSupabase();
+    const { data: beforeData } = await supabase.from("volunteer_call").select("call_title").eq("call_id", id).maybeSingle();
+    const callTitle = (beforeData as any)?.call_title ?? null;
+    const joinedUserIds = await getUsersJoinedCall(id);
+
     // Delete the volunteer call from the database
     const { data, error } = await supabase.from("volunteer_call").delete().eq("call_id", id).select();
     // Handle any errors
     if (error) return { success: false, error: String((error as any).message || error) };
+    if (joinedUserIds.length > 0) {
+      await notifyUsers(joinedUserIds, {
+        sender_id: null,
+        event_type: 'volunteer_call.deleted',
+        priority: 'high',
+        title: 'Volunteer call deleted',
+        message: `Volunteer call${callTitle ? `: ${callTitle}` : ''} has been deleted.`,
+        entity_type: 'volunteer_call',
+        entity_id: String(id),
+      });
+    }
     // Revalidate the admin volunteer list so the UI updates immediately
     try { revalidatePath('/admin/volunteer'); } catch (_) {}
     // Return success
