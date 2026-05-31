@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Menu, LogIn } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import UserNotificationsBell from "@/components/UserNotificationsBell";
+import { supabase } from "@/utils/supabase/client";
 import type { AnimalRecord } from "@/types/pawfect-match";
 
 type Props = {
@@ -19,6 +24,43 @@ export default function AdoptionForm({ animal }: Props) {
   const [why, setWhy] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  // Layout State
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sidebarVariant, setSidebarVariant] = useState<"user" | "admin" | "guest">("guest");
+
+  useEffect(() => {
+    const checkAuthAndVariant = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+      setIsAuthenticated(!!user);
+      if (user) {
+        setUserEmail(user.email || "");
+        const nameFromMeta =
+          user.user_metadata?.full_name || user.user_metadata?.name || "";
+        setUserName(nameFromMeta || user.email?.split("@")[0] || "");
+        
+        const { data: adminData, error } = await supabase
+          .from('admin')
+          .select('auth_id')
+          .eq('auth_id', user.id)
+          .single();
+        if (adminData && !error) {
+          setSidebarVariant("admin");
+        } else {
+          setSidebarVariant("user");
+        }
+      } else {
+        setSidebarVariant("guest");
+      }
+    };
+    checkAuthAndVariant();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,9 +101,24 @@ export default function AdoptionForm({ animal }: Props) {
     }
   }
 
-  return (
-    <div className="flex flex-col items-center w-full md:min-w-[768px] max-w-[1024px] mx-auto px-4 sm:px-8 md:px-[64px] pb-[40px]">
-      <div className="w-full mb-6 flex flex-col items-start gap-1">
+  const renderContent = () => {
+    if (!animal) {
+      return (
+        <div className="flex flex-col items-center w-full md:min-w-[768px] max-w-[1024px] mx-auto px-4 sm:px-8 md:px-[64px] pb-[40px]">
+          <h1 className="text-2xl font-bold">Animal not found</h1>
+          <p className="text-slate-600">We couldn't find that animal. It may have been removed.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center w-full md:min-w-[768px] max-w-[1024px] mx-auto px-4 sm:px-8 md:px-[64px] pb-[40px]">
+        <div className="w-full flex justify-start mb-6">
+          <div className="flex flex-col gap-6 rounded-2xl bg-white py-3 px-6 shadow-[0_18px_50px_rgba(141,82,167,0.12)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-purple-500">Adoption Application</p>
+          </div>
+        </div>
+        <div className="w-full mb-6 flex flex-col items-start gap-1">
         <h1
           className="text-3xl sm:text-4xl md:text-5xl tracking-wide w-full text-left"
           style={{
@@ -74,7 +131,7 @@ export default function AdoptionForm({ animal }: Props) {
             lineHeight: "1.1",
           }}
         >
-          Adoption Application Form
+          Apply to adopt {animal.animal_name}
         </h1>
         <p
           className="text-sm md:text-base w-full text-left"
@@ -173,5 +230,90 @@ export default function AdoptionForm({ animal }: Props) {
         </div>
       </form>
     </div>
+    );
+  };
+
+  return (
+    <main className="relative min-h-screen flex flex-col items-center overflow-hidden bg-[#E1E69D]">
+      {/* Sidebar */}
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        userName={userName}
+        userEmail={userEmail || undefined}
+        router={router}
+        variant={sidebarVariant}
+      />
+
+      <div className="relative z-10 w-full flex flex-col items-center flex-1">
+        <header className="flex items-center justify-between px-4 w-full h-[52px] bg-[#E6E6E6] mx-auto z-10 w-full max-w-full">
+            <div className="w-full max-w-[1400px] mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3 w-1/3">
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="p-1 hover:bg-gray-200 rounded-lg transition"
+                >
+                  <Menu className="w-6 h-6 text-[#3C3333]" />
+                </button>
+              </div>
+
+              <div className="flex-1 flex justify-center items-center h-full cursor-pointer" onClick={() => router.push('/')}>
+                <Image
+                  src="/Moodboard2.png"
+                  alt="Pawject Patrol Logo"
+                  width={77}
+                  height={36}
+                  className="flex-shrink-0"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 sm:gap-4 w-1/3">
+                {isAuthenticated ? <UserNotificationsBell /> : null}
+                <button
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                  onClick={async () => {
+                    if (!isAuthenticated) {
+                      router.push("/login");
+                      return;
+                    }
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                      const { data: adminData } = await supabase
+                        .from('admin')
+                        .select('auth_id')
+                        .eq('auth_id', user.id)
+                        .single();
+                      
+                      await supabase.auth.signOut();
+                      if (adminData) {
+                        router.push("/admin/login");
+                      } else {
+                        router.push("/");
+                      }
+                    }
+                  }}
+                >
+                  <LogIn className="w-6 h-6 text-[#3C3333]" />
+                </button>
+              </div>
+            </div>
+        </header>
+
+        <div className="max-w-6xl mx-auto px-4 py-8 pl-6 pr-6 w-full">
+          <div className="bg-[#E1E69D] rounded-2xl p-2 md:p-5 lg:p-8 pl-[24px] pr-[24px] w-full">
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+      
+      {/* Footer */}
+      <footer className="py-6 border-t w-full text-center flex-shrink-0">
+        <div className="max-w-6xl mx-auto px-6">
+          <p className="text-xs text-gray-500" style={{ fontFamily: '"Genty Sans", sans-serif' }}>
+            Pawject Patrol — Youth For Animals UP Mindanao
+          </p>
+        </div>
+      </footer>
+    </main>
   );
 }
