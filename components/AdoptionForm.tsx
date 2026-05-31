@@ -59,6 +59,15 @@ export default function AdoptionForm({ animal }: Props) {
     }
   }
 
+  if (!animal) {
+    return (
+      <div className="flex flex-col items-center w-full md:min-w-[768px] max-w-[1024px] mx-auto px-4 sm:px-8 md:px-[64px] pb-[40px]">
+        <h1 className="text-2xl font-bold">Animal not found</h1>
+        <p className="text-slate-600">We couldn't find that animal. It may have been removed.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center w-full md:min-w-[768px] max-w-[1024px] mx-auto px-4 sm:px-8 md:px-[64px] pb-[40px]">
       <div className="w-full mb-6 flex flex-col items-start gap-1">
@@ -74,7 +83,7 @@ export default function AdoptionForm({ animal }: Props) {
             lineHeight: "1.1",
           }}
         >
-          Adoption Application Form
+          Apply to adopt {animal.animal_name}
         </h1>
         <p
           className="text-sm md:text-base w-full text-left"
