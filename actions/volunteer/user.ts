@@ -11,6 +11,31 @@ async function getSupabase() {
   return await createClient();
 }
 
+type VolunteerCallTiming = {
+  call_status?: string | null;
+  call_starttime?: string | null;
+  call_endtime?: string | null;
+};
+
+function getVolunteerPhase(call: VolunteerCallTiming, now = new Date()) {
+  const status = (call.call_status || '').toLowerCase();
+  if (status === 'cancelled' || status === 'completed') {
+    return call.call_status;
+  }
+
+  const endTime = call.call_endtime ? new Date(call.call_endtime) : null;
+  if (endTime && now >= endTime) {
+    return 'Completed';
+  }
+
+  const startTime = call.call_starttime ? new Date(call.call_starttime) : null;
+  if (startTime && now >= startTime) {
+    return 'Ongoing';
+  }
+
+  return call.call_status;
+}
+
 // Join a volunteer opportunity
 export async function joinVolunteerCall(callId: string) {
   try {
@@ -37,7 +62,7 @@ export async function joinVolunteerCall(callId: string) {
     // Check capacity
     const { data: call } = await supabase
       .from('volunteer_call')
-      .select('capacity, call_status, call_title')
+      .select('capacity, call_status, call_title, call_starttime, call_endtime')
       .eq('call_id', callId)
       .single();
 
@@ -45,7 +70,7 @@ export async function joinVolunteerCall(callId: string) {
       return { success: false, error: 'Opportunity not found' };
     }
 
-    if (call.call_status !== 'Active') {
+    if ((getVolunteerPhase(call as VolunteerCallTiming) || '').toLowerCase() !== 'active') {
       return { success: false, error: 'This opportunity is no longer active' };
     }
 
@@ -143,12 +168,12 @@ export async function getUserResponseStatus(callId: string) {
     // Fetch call status as authoritative for 'ongoing' override
     const { data: callRow } = await supabase
       .from('volunteer_call')
-      .select('call_status')
+      .select('call_status, call_starttime, call_endtime')
       .eq('call_id', callId)
       .maybeSingle();
 
-    const callStatus = (callRow as any)?.call_status ? String((callRow as any).call_status).toLowerCase() : null;
-    if (callStatus === 'ongoing') return 'Ongoing';
+    const callStatus = getVolunteerPhase(callRow as VolunteerCallTiming);
+    if ((callStatus || '').toLowerCase() === 'ongoing') return 'Ongoing';
 
     const { data } = await supabase
       .from('volunteer_response')
@@ -205,13 +230,14 @@ export async function leaveVolunteerCall(callId: string) {
     // Prevent leaving if the call is already ongoing
     const { data: callStatusRow } = await supabase
       .from('volunteer_call')
-      .select('call_status')
+      .select('call_status, call_starttime, call_endtime')
       .eq('call_id', callId)
       .maybeSingle();
 
-    const callStatus = (callStatusRow as any)?.call_status ? String((callStatusRow as any).call_status).toLowerCase() : null;
-    if (callStatus === 'ongoing') {
-      return { success: false, error: 'This opportunity is ongoing' };
+    const callStatus = getVolunteerPhase(callStatusRow as VolunteerCallTiming);
+    const normalizedStatus = (callStatus || '').toLowerCase();
+    if (normalizedStatus !== 'active' && normalizedStatus !== 'filled' && normalizedStatus !== 'joined') {
+      return { success: false, error: 'This opportunity is no longer open for leaving' };
     }
 
     // Delete the response

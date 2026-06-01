@@ -59,6 +59,34 @@ function statusBadgeStyle(status?: string | null) {
   return { borderColor: '#F59E42' };
 }
 
+function getVolunteerDisplayStatus(volunteer: VolunteerCall, userJoined: boolean, signupCount: number, now = new Date()) {
+  const currentStatus = (volunteer.call_status || '').toLowerCase();
+  if (currentStatus === 'cancelled' || currentStatus === 'completed') {
+    return volunteer.call_status;
+  }
+
+  const endTime = volunteer.call_endtime ? new Date(volunteer.call_endtime) : null;
+  if (endTime && now >= endTime) {
+    return 'Completed';
+  }
+
+  const startTime = volunteer.call_starttime ? new Date(volunteer.call_starttime) : null;
+  if (startTime && now >= startTime) {
+    return 'Ongoing';
+  }
+
+  if (userJoined) {
+    return 'Joined';
+  }
+
+  const hasCapacity = typeof volunteer.capacity === 'number' && volunteer.capacity > 0;
+  if (hasCapacity && signupCount >= (volunteer.capacity || 0)) {
+    return 'Filled';
+  }
+
+  return 'Active';
+}
+
 // Volunteer Detail Page Component
 export default function VolunteerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -137,28 +165,7 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
         setError(error.message);
         setVolunteer(null);
       } else {
-        let volunteerData = data as VolunteerCall;
-        
-        // Sync status on the client side based on time
-        const now = new Date();
-        const startTime = volunteerData.call_starttime ? new Date(volunteerData.call_starttime) : null;
-        const endTime = volunteerData.call_endtime ? new Date(volunteerData.call_endtime) : null;
-        const currentStatus = (volunteerData.call_status || '').toLowerCase();
-        
-        // Status priority: Cancelled > Completed > Ongoing (time-based) > others
-        if (currentStatus === 'cancelled') {
-          // Keep cancelled status
-        } else if (currentStatus === 'completed') {
-          // Keep completed status (overrides all except cancelled)
-        } else if (startTime && endTime && now >= startTime && now <= endTime) {
-          // Check if ongoing (between start and end time) - overrides active/filled
-          volunteerData = { ...volunteerData, call_status: 'Ongoing' };
-        } else if (endTime && now > endTime && currentStatus !== 'completed') {
-          // If past end time and not already marked completed, mark as completed
-          volunteerData = { ...volunteerData, call_status: 'Completed' };
-        }
-        
-        setVolunteer(volunteerData);
+        setVolunteer(data as VolunteerCall);
         
         // Fetch signup count and user status
         const count = await getVolunteerSignupCount(unwrappedParams.id);
@@ -176,6 +183,8 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
       fetchVolunteer();
     }
   }, [unwrappedParams.id]);
+
+  const displayStatus = volunteer ? getVolunteerDisplayStatus(volunteer, Boolean(userStatus), signupCount) : null;
 
   // Handle join button click (show modal)
   const handleJoinClick = () => {
@@ -362,17 +371,15 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                           {volunteer.call_title || "Untitled"}
                         </h2>
                         <div
-                          className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${statusBadgeClassName(volunteer.call_status)}`}
+                          className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${statusBadgeClassName(displayStatus)}`}
                           style={{
-                            ...statusBadgeStyle(volunteer.call_status),
+                            ...statusBadgeStyle(displayStatus),
                             fontFamily: 'Genty Sans, sans-serif',
                             borderWidth: '1.5px',
                             borderStyle: 'solid',
                           }}
                         >
-                          {volunteer.call_status?.toLowerCase() === 'ongoing'
-                            ? 'Ongoing'
-                            : (userStatus ? 'Joined' : (volunteer.call_status || 'Unknown'))}
+                          {displayStatus || 'Unknown'}
                         </div>
                       </div>
                     </div>
@@ -473,7 +480,7 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                             >
                               Already Joined
                             </button>
-                            {volunteer?.call_status?.toLowerCase() === 'ongoing' ? (
+                            {displayStatus?.toLowerCase() === 'ongoing' ? (
                               <button
                                 disabled
                                 className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-[#9CA3AF] text-white opacity-50 cursor-not-allowed"
@@ -500,7 +507,7 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                           >
                             Capacity Full
                           </button>
-                        ) : volunteer?.call_status?.toLowerCase() === 'active' ? (
+                        ) : displayStatus?.toLowerCase() === 'active' ? (
                           <button
                             onClick={handleJoinClick}
                             disabled={joining}
@@ -509,7 +516,7 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                           >
                             {joining ? 'Joining...' : 'Join This Opportunity'}
                           </button>
-                        ) : volunteer?.call_status?.toLowerCase() === 'ongoing' ? (
+                        ) : displayStatus?.toLowerCase() === 'ongoing' ? (
                           <button
                             disabled
                             className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-[#9CA3AF] text-white opacity-50 cursor-not-allowed"
@@ -517,7 +524,7 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                           >
                             This Opportunity is Ongoing
                           </button>
-                        ) : volunteer?.call_status?.toLowerCase() === 'filled' ? (
+                        ) : displayStatus?.toLowerCase() === 'filled' ? (
                           <button
                             disabled
                             className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-[#9CA3AF] text-white opacity-50 cursor-not-allowed"
@@ -525,13 +532,21 @@ export default function VolunteerDetailPage({ params }: { params: Promise<{ id: 
                           >
                             This Opportunity is Filled
                           </button>
-                        ) : volunteer?.call_status?.toLowerCase() === 'cancelled' ? (
+                        ) : displayStatus?.toLowerCase() === 'cancelled' ? (
                           <button
                             disabled
                             className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-[#9CA3AF] text-white opacity-50 cursor-not-allowed"
                             style={{ fontFamily: 'Genty Sans, sans-serif', fontWeight: 500, boxSizing: 'border-box', textAlign: 'center' }}
                           >
                             This Opportunity was Cancelled
+                          </button>
+                        ) : displayStatus?.toLowerCase() === 'completed' ? (
+                          <button
+                            disabled
+                            className="flex-1 min-w-0 px-4 py-2 rounded-md text-sm font-medium border border-[#6B4A6B] bg-[#9CA3AF] text-white opacity-50 cursor-not-allowed"
+                            style={{ fontFamily: 'Genty Sans, sans-serif', fontWeight: 500, boxSizing: 'border-box', textAlign: 'center' }}
+                          >
+                            This Opportunity is Completed
                           </button>
                         ) : (
                           <button

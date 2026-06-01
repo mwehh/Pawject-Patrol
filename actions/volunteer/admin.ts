@@ -392,7 +392,7 @@ export async function syncVolunteerCallStatus(callId: string) {
     const startTime = call.call_starttime ? new Date(call.call_starttime) : null;
     const endTime = call.call_endtime ? new Date(call.call_endtime) : null;
     // Completed status overrides all except Cancelled
-    if (endTime && now > endTime) {
+    if (endTime && now >= endTime) {
       if (currentStatus !== 'completed') {
         await supabase
           .from('volunteer_call')

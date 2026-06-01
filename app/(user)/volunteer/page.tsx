@@ -11,7 +11,7 @@ import Sidebar from "@/components/Sidebar";
 import UserNotificationsBell from "@/components/UserNotificationsBell";
 import { Suspense } from "react";
 import { joinVolunteerCall, leaveVolunteerCall, getUserResponseStatus, getVolunteerSignupCount } from '@/actions/volunteer/user';
-import { listVolunteerCalls } from '@/actions/volunteer/admin';
+import { listVolunteerCalls, syncVolunteerCallStatus } from '@/actions/volunteer/admin';
 
 // Define Volunteer type
 type Volunteer = {
@@ -68,6 +68,34 @@ function formatTime(value?: string | null) {
   } catch {
     return String(value);
   }
+}
+
+function getVolunteerDisplayStatus(call: Volunteer, userJoined: boolean) {
+  const status = (call.call_status || '').toLowerCase();
+  if (status.includes('completed')) return 'Completed';
+  if (status.includes('cancel')) return 'Cancelled';
+
+  const now = new Date();
+  const endTime = call.call_endtime ? new Date(call.call_endtime) : null;
+  if (endTime && now >= endTime) return 'Completed';
+
+  const startTime = call.call_starttime ? new Date(call.call_starttime) : null;
+  if (startTime && now >= startTime) return 'Ongoing';
+
+  if (userJoined) return 'Joined';
+
+  const hasCapacity = typeof call.capacity === 'number' && call.capacity > 0;
+  const joined = typeof call.joined_count === 'number' ? call.joined_count : 0;
+  if (hasCapacity && joined >= (call.capacity || 0)) return 'Filled';
+
+  return 'Active';
+}
+
+function isVolunteerCallCompleted(call: Volunteer, now = new Date()) {
+  const status = (call.call_status || '').toLowerCase();
+  if (status.includes('completed')) return true;
+  const endTime = call.call_endtime ? new Date(call.call_endtime) : null;
+  return Boolean(endTime && now >= endTime);
 }
 
 console.log("UserVolunteerPage mounted");
@@ -129,7 +157,11 @@ function UserVolunteerPage() {
       });
 
 
-      // For each call, fetch joined_count using backend function
+      // Ensure server sync updates Supabase for each call, then fetch joined_count
+      await Promise.all((data as Volunteer[])
+        .filter((c) => c.call_id)
+        .map((c) => syncVolunteerCallStatus(String(c.call_id))));
+
       const withCounts = await Promise.all(
         (data as Volunteer[]).map(async (call) => {
           if (!call.call_id) return { ...call, joined_count: 0 };
@@ -137,7 +169,10 @@ function UserVolunteerPage() {
           return { ...call, joined_count: count || 0 };
         })
       );
-      setItems(withCounts);
+      // Remove any calls already completed (by status or by end time) so users don't see them
+      const now = new Date();
+      const visible = withCounts.filter((c) => !isVolunteerCallCompleted(c, now));
+      setItems(visible);
 
       // Fetch user response status for each call
       const statuses: { [key: string]: string | null } = {};
@@ -340,9 +375,10 @@ function UserVolunteerPage() {
 
               // User status for this call
               const userStatus = it.call_id ? userStatuses[it.call_id] : null;
+              const displayStatus = getVolunteerDisplayStatus(it, Boolean(userStatus));
               const isFull = hasCapacity && joined >= capacity!;
-              const canJoin = !userStatus && !isFull && it.call_status?.toLowerCase() === 'active';
-              const canLeave = userStatus && (userStatus === 'Pending' || userStatus === 'Accepted');
+              const canJoin = displayStatus === 'Active';
+              const canLeave = Boolean(userStatus) && (displayStatus === 'Joined' || displayStatus === 'Active' || displayStatus === 'Filled');
 
               return (
                 <div
@@ -350,63 +386,47 @@ function UserVolunteerPage() {
                   className="relative bg-[#F7F7E8] border-2 border-[#8D52A7] rounded-2xl shadow-lg hover:shadow-xl transition-shadow flex flex-col justify-between min-h-[260px]"
                   style={{ fontFamily: 'Genty Sans', padding: '0' }}
                 >
-                  {/* Status badge, Filled badge, or Joined badge (with override for ongoing, cancelled, completed) */}
+                  {/* Status badge follows hierarchy: Completed = Cancelled > Ongoing > Filled = Joined > Active */}
                   <div className="absolute top-6 left-5">
-                    {(() => {
-                      const status = (it.call_status || '').toLowerCase();
-                      // Hierarchy: completed = cancelled > ongoing > joined > active = filled
-                      if (status.includes('completed') || status.includes('cancel')) {
-                        // Completed or Cancelled (highest priority)
-                        return (
-                          <span className={`px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md ${status.includes('completed') ? 'bg-gray-300 text-gray-700 border-gray-400' : 'bg-red-100 text-red-700 border-red-400'}`}
-                            style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                            {status.includes('completed') ? 'Completed' : 'Cancelled'}
-                          </span>
-                        );
-                      }
-                      if (status.includes('ongoing')) {
-                        // Ongoing (next priority)
-                        return (
-                          <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-purple-100 text-purple-700 border-purple-400"
-                            style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                            Ongoing
-                          </span>
-                        );
-                      }
-                      if (userStatus) {
-                        // Joined (next priority)
-                        return (
-                          <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-gray-200 text-gray-700 border-gray-400"
-                            style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                            Joined
-                          </span>
-                        );
-                      }
-                      if (hasCapacity && spotsLeft === 0) {
-                        // Filled (same as active, but visually distinct if full)
-                        return (
-                          <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-yellow-200 text-yellow-800 border-yellow-400"
-                            style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                            Filled
-                          </span>
-                        );
-                      }
-                      // Default: Active or other status
-                      return (
-                        <span
-                          className={`px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md`}
-                          style={{
-                            fontFamily: '"Genty Sans", sans-serif',
-                            fontWeight: 600,
-                            letterSpacing: '0.02em',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                            ...statusBadgeClasses(it.call_status),
-                          }}
-                        >
-                          {it.call_status || 'Active'}
-                        </span>
-                      );
-                    })()}
+                    {displayStatus === 'Completed' ? (
+                      <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-gray-300 text-gray-700 border-gray-400"
+                        style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                        Completed
+                      </span>
+                    ) : displayStatus === 'Cancelled' ? (
+                      <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-red-100 text-red-700 border-red-400"
+                        style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                        Cancelled
+                      </span>
+                    ) : displayStatus === 'Ongoing' ? (
+                      <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-purple-100 text-purple-700 border-purple-400"
+                        style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                        Ongoing
+                      </span>
+                    ) : displayStatus === 'Joined' ? (
+                      <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-gray-200 text-gray-700 border-gray-400"
+                        style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                        Joined
+                      </span>
+                    ) : displayStatus === 'Filled' ? (
+                      <span className="px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md bg-yellow-200 text-yellow-800 border-yellow-400"
+                        style={{ fontFamily: '"Genty Sans", sans-serif', fontWeight: 600, letterSpacing: '0.02em', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                        Filled
+                      </span>
+                    ) : (
+                      <span
+                        className={`px-7 py-3 rounded-xl text-xs font-semibold border-2 shadow-md`}
+                        style={{
+                          fontFamily: '"Genty Sans", sans-serif',
+                          fontWeight: 600,
+                          letterSpacing: '0.02em',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                          ...statusBadgeClasses('active'),
+                        }}
+                      >
+                        Active
+                      </span>
+                    )}
                   </div>
 
                   {/* Card content */}

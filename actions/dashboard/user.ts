@@ -1,6 +1,32 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
+import { syncVolunteerCallStatus } from '@/actions/volunteer/admin';
+
+type VolunteerCallTiming = {
+  call_status?: string | null;
+  call_starttime?: string | null;
+  call_endtime?: string | null;
+};
+
+function getVolunteerPhase(call: VolunteerCallTiming, now = new Date()) {
+  const status = (call.call_status || '').toLowerCase();
+  if (status === 'cancelled' || status === 'completed') {
+    return call.call_status;
+  }
+
+  const endTime = call.call_endtime ? new Date(call.call_endtime) : null;
+  if (endTime && now >= endTime) {
+    return 'Completed';
+  }
+
+  const startTime = call.call_starttime ? new Date(call.call_starttime) : null;
+  if (startTime && now >= startTime) {
+    return 'Ongoing';
+  }
+
+  return 'Joined';
+}
 
 // Get user's dashboard statistics
 export async function getUserDashboardStats() {
@@ -21,11 +47,31 @@ export async function getUserDashboardStats() {
     .eq('user_id', user.id)
     .eq('report_status', 'Accepted');
     
-  // Volunteer stats: count only opportunities the user has joined
-  const { count: volunteersJoined } = await supabase
+  // Volunteer stats: count only calls the user joined that are still upcoming (Joined) or Ongoing.
+  const { data: joinedRows } = await supabase
     .from('volunteer_response')
-    .select('response_id', { count: 'exact', head: true })
+    .select('call_id')
     .eq('user_id', user.id);
+
+  const joinedCallIds: string[] = (joinedRows || [])
+    .map((row: { call_id: string | null }) => row.call_id)
+    .filter((id): id is string => Boolean(id));
+
+  let volunteersJoined = 0;
+  if (joinedCallIds.length > 0) {
+    await Promise.all(joinedCallIds.map((id) => syncVolunteerCallStatus(id)));
+
+    const { data: calls } = await supabase
+      .from('volunteer_call')
+      .select('call_id, call_status, call_starttime, call_endtime')
+      .in('call_id', joinedCallIds);
+
+    const now = new Date();
+    volunteersJoined = (calls || []).filter((call: any) => {
+      const phase = (getVolunteerPhase(call as VolunteerCallTiming, now) || '').toLowerCase();
+      return phase === 'ongoing' || phase === 'joined';
+    }).length;
+  }
     
   return {
     totalReports: totalReports || 0,
@@ -93,20 +139,27 @@ export async function getUpcomingVolunteerCalls(limit: number = 3) {
   let data: any[] = [];
   let error: any = null;
   if (joinedCallIds.length > 0) {
+    // Ensure DB status is up-to-date for these calls before returning them
+    await Promise.all((joinedCallIds || []).map((id) => syncVolunteerCallStatus(id)));
+
     const result = await supabase
       .from('volunteer_call')
       .select('call_id, call_title, call_starttime, call_endtime, call_location, capacity, call_status')
       .in('call_id', joinedCallIds)
       .order('call_starttime', { ascending: true })
       .limit(limit);
-    data = result.data as any[] || [];
+    const now = new Date();
+    data = (result.data as any[] || []).filter((call: any) => {
+      const phase = (getVolunteerPhase(call as VolunteerCallTiming, now) || '').toLowerCase();
+      return phase !== 'completed';
+    });
     error = result.error;
   }
 
   if (error) return { data: [], userJoined: [] };
 
   return {
-    data,
+    data: data.slice(0, limit),
     userJoined: joinedCallIds
   };
 }
